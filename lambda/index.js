@@ -235,6 +235,10 @@ exports.handler = async (event) => {
     if (path === "/receipts" && method === "POST") {
       return await createReceipts(JSON.parse(event.body));
     }
+    if (path.match(/^\/receipts\/[^\/]+$/) && method === "DELETE") {
+      const id = path.split("/")[2];
+      return await deleteReceipt(id);
+    }
 
     return {
       statusCode: 404,
@@ -838,6 +842,11 @@ async function createReceipts(receipts) {
     createdReceipts.push(receipt);
   }
   return { statusCode: 201, headers, body: JSON.stringify(createdReceipts) };
+}
+
+async function deleteReceipt(id) {
+  await ddb.send(new DeleteCommand({ TableName: RECEIPTS_TABLE, Key: { id } }));
+  return { statusCode: 204, headers, body: "" };
 }
 
 // Order functions
