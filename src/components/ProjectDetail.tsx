@@ -3164,7 +3164,13 @@ const ProjectDetail = () => {
                     <input
                       type="date"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
-                      defaultValue={new Date().toISOString().split("T")[0]}
+                      value={receiveForm.receivedDate}
+                      onChange={(e) => {
+                        setReceiveForm({
+                          ...receiveForm,
+                          receivedDate: e.target.value,
+                        });
+                      }}
                     />
                   </div>
                   <div className="col-span-2">
@@ -3175,6 +3181,13 @@ const ProjectDetail = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
                       rows={2}
                       placeholder="Optional receiving notes"
+                      value={receiveForm.notes}
+                      onChange={(e) => {
+                        setReceiveForm({
+                          ...receiveForm,
+                          notes: e.target.value,
+                        });
+                      }}
                     />
                   </div>
                 </div>
