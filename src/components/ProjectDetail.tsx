@@ -593,6 +593,52 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleRecordReceipt = async () => {
+    if (!selectedOrderId) return;
+
+    try {
+      const receiptsToCreate = Object.entries(receiveForm.items)
+        .filter(([, data]) => data.qty && parseFloat(data.qty) > 0)
+        .map(([orderItemId, data]) => ({
+          orderId: selectedOrderId,
+          orderItemId,
+          receivedQuantity: parseFloat(data.qty),
+          receivedDate: receiveForm.receivedDate,
+          notes: receiveForm.notes,
+        }));
+
+      const newReceipts = await orderService.createReceipts(receiptsToCreate);
+      
+      setReceipts([...receipts, ...newReceipts]);
+
+      const updatedLineItems = [...lineItems];
+      for (const [orderItemId, data] of Object.entries(receiveForm.items)) {
+        if (data.qty && parseFloat(data.qty) > 0) {
+          const orderItem = orderItems.find(oi => oi.id === orderItemId);
+          if (orderItem) {
+            const lineItem = updatedLineItems.find(li => li.id === orderItem.lineItemId);
+            if (lineItem) {
+              lineItem.status = data.isPartial ? "part recvd" : "received";
+            }
+          }
+        }
+      }
+      setLineItems(updatedLineItems);
+
+      setShowReceiveModal(false);
+      setSelectedVendorId(null);
+      setSelectedOrderId(null);
+      setReceiveForm({
+        receivedDate: new Date().toISOString().split("T")[0],
+        notes: "",
+        items: {},
+      });
+    } catch (err) {
+      console.error("Failed to record receipt:", err);
+      alert("Failed to record receipt. Please try again.");
+    }
+  };
+
   const handleClearAllReceipts = async () => {
     if (!id) return;
     if (
@@ -3215,13 +3261,7 @@ const ProjectDetail = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  // TODO: Save receipts
-                  alert("Receiving will be implemented with backend API");
-                  setShowReceiveModal(false);
-                  setSelectedVendorId(null);
-                  setSelectedOrderId(null);
-                }}
+                onClick={handleRecordReceipt}
                 className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
                 disabled={!selectedOrderId}
               >
