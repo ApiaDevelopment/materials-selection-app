@@ -667,8 +667,8 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleOpenReceiveModal = (orderId: string) => {
-    setSelectedOrderId(orderId);
+  const handleOpenReceiveModal = (vendorId: string) => {
+    setSelectedVendorId(vendorId);
     setShowReceiveModal(true);
   };
 
