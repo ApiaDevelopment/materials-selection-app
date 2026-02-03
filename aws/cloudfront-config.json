@@ -1,0 +1,48 @@
+{
+  "Comment": "CloudFront distribution for Materials Selection App",
+  "Enabled": true,
+  "DefaultRootObject": "index.html",
+  "Origins": [
+    {
+      "Id": "S3-materials-selection-app",
+      "DomainName": "YOUR_BUCKET_NAME.s3.amazonaws.com",
+      "S3OriginConfig": {
+        "OriginAccessIdentity": ""
+      }
+    }
+  ],
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "S3-materials-selection-app",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "AllowedMethods": ["GET", "HEAD", "OPTIONS"],
+    "CachedMethods": ["GET", "HEAD"],
+    "ForwardedValues": {
+      "QueryString": false,
+      "Cookies": {
+        "Forward": "none"
+      }
+    },
+    "MinTTL": 0,
+    "DefaultTTL": 86400,
+    "MaxTTL": 31536000,
+    "Compress": true
+  },
+  "CustomErrorResponses": [
+    {
+      "ErrorCode": 403,
+      "ResponsePagePath": "/index.html",
+      "ResponseCode": "200",
+      "ErrorCachingMinTTL": 300
+    },
+    {
+      "ErrorCode": 404,
+      "ResponsePagePath": "/index.html",
+      "ResponseCode": "200",
+      "ErrorCachingMinTTL": 300
+    }
+  ],
+  "PriceClass": "PriceClass_100",
+  "ViewerCertificate": {
+    "CloudFrontDefaultCertificate": true
+  }
+}

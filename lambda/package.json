@@ -1,0 +1,10 @@
+{
+  "name": "materials-selection-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function for Materials Selection API",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.x",
+    "@aws-sdk/lib-dynamodb": "^3.x"
+  }
+}

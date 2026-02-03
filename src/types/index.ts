@@ -1,0 +1,290 @@
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  customerName?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  estimatedStartDate?: string;
+  type?:
+    | "bath"
+    | "kitchen"
+    | "shower"
+    | "roof"
+    | "addition"
+    | "renovation"
+    | "flooring"
+    | "deck"
+    | "basement"
+    | "other";
+  status?: "planning" | "in-progress" | "on-hold" | "completed";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Category {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string;
+  allowance?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  contactInfo?: string;
+  website?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Manufacturer {
+  id: string;
+  name: string;
+  website?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Product {
+  id: string;
+  manufacturerId: string;
+  name: string;
+  modelNumber?: string;
+  description?: string;
+  category?: string;
+  unit?: string;
+  imageUrl?: string;
+  productUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LineItem {
+  id: string;
+  categoryId: string;
+  projectId: string;
+  name: string;
+  material: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  totalCost: number;
+  notes?: string;
+  // Enhanced tracking fields
+  vendorId?: string;
+  vendorName?: string;
+  manufacturerId?: string;
+  manufacturerName?: string;
+  productId?: string;
+  modelNumber?: string;
+  allowance?: number;
+  orderedDate?: string;
+  receivedDate?: string;
+  stagingLocation?: string;
+  returnNotes?: string;
+  status?: "pending" | "ordered" | "received" | "installed";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectRequest {
+  name: string;
+  description: string;
+  customerName?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  estimatedStartDate?: string;
+  type?:
+    | "bath"
+    | "kitchen"
+    | "shower"
+    | "roof"
+    | "addition"
+    | "renovation"
+    | "flooring"
+    | "deck"
+    | "basement"
+    | "other";
+  status?: "planning" | "in-progress" | "on-hold" | "completed";
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+  customerName?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+  estimatedStartDate?: string;
+  type?:
+    | "bath"
+    | "kitchen"
+    | "shower"
+    | "roof"
+    | "addition"
+    | "renovation"
+    | "flooring"
+    | "deck"
+    | "basement"
+    | "other";
+  status?: "planning" | "in-progress" | "on-hold" | "completed";
+}
+
+export interface CreateCategoryRequest {
+  projectId: string;
+  name: string;
+  description: string;
+  allowance?: number;
+}
+
+export interface UpdateCategoryRequest {
+  name?: string;
+  description?: string;
+  allowance?: number;
+}
+
+export interface CreateLineItemRequest {
+  categoryId: string;
+  projectId: string;
+  name: string;
+  material: string;
+  quantity: number;
+  unit: string;
+  unitCost: number;
+  notes?: string;
+  vendorId?: string;
+  manufacturerId?: string;
+  productId?: string;
+  modelNumber?: string;
+  allowance?: number;
+  orderedDate?: string;
+  receivedDate?: string;
+  stagingLocation?: string;
+  returnNotes?: string;
+  status?: "pending" | "ordered" | "received" | "installed";
+}
+
+export interface UpdateLineItemRequest {
+  name?: string;
+  material?: string;
+  quantity?: number;
+  unit?: string;
+  unitCost?: number;
+  notes?: string;
+  vendorId?: string;
+  manufacturerId?: string;
+  productId?: string;
+  modelNumber?: string;
+  allowance?: number;
+  orderedDate?: string;
+  receivedDate?: string;
+  stagingLocation?: string;
+  returnNotes?: string;
+  status?: "pending" | "ordered" | "received" | "installed";
+}
+
+export interface CreateVendorRequest {
+  name: string;
+  contactInfo?: string;
+  website?: string;
+}
+
+export interface UpdateVendorRequest {
+  name?: string;
+  contactInfo?: string;
+  website?: string;
+}
+
+export interface CreateManufacturerRequest {
+  name: string;
+  website?: string;
+}
+
+export interface UpdateManufacturerRequest {
+  name?: string;
+  website?: string;
+}
+
+export interface CreateProductRequest {
+  manufacturerId: string;
+  name: string;
+  modelNumber?: string;
+  description?: string;
+  category?: string;
+  unit?: string;
+  imageUrl?: string;
+  productUrl?: string;
+}
+
+export interface UpdateProductRequest {
+  manufacturerId?: string;
+  name?: string;
+  modelNumber?: string;
+  description?: string;
+  category?: string;
+  unit?: string;
+  imageUrl?: string;
+  productUrl?: string;
+}
+
+// Order tracking interfaces
+export interface Order {
+  id: string;
+  projectId: string;
+  vendorId: string;
+  orderNumber: string;
+  orderDate: string;
+  notes?: string;
+  status: "pending" | "placed" | "received" | "completed";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  lineItemId: string;
+  orderedQuantity: number;
+  orderedPrice: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Receipt {
+  id: string;
+  orderId: string;
+  orderItemId: string;
+  receivedQuantity: number;
+  receivedDate: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductVendor {
+  id: string;
+  productId: string;
+  vendorId: string;
+  cost: number;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProductVendorRequest {
+  productId: string;
+  vendorId: string;
+  cost: number;
+  isPrimary?: boolean;
+}
+
+export interface UpdateProductVendorRequest {
+  cost?: number;
+  isPrimary?: boolean;
+}

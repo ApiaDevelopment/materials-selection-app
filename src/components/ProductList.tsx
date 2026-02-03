@@ -1,0 +1,1038 @@
+import { useEffect, useRef, useState } from "react";
+import {
+    manufacturerService,
+    productService,
+    productVendorService,
+    vendorService,
+} from "../services";
+import type { Manufacturer, Product, ProductVendor, Vendor } from "../types";
+
+type FilterView = "all" | "vendor" | "manufacturer" | "category";
+
+const ProductList = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterView, setFilterView] = useState<FilterView>("all");
+  const [selectedManufacturerId, setSelectedManufacturerId] =
+    useState<string>("");
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [isVendorModalOpen, setIsVendorModalOpen] = useState(false);
+  const [managingProduct, setManagingProduct] = useState<Product | null>(null);
+  const [productVendors, setProductVendors] = useState<ProductVendor[]>([]);
+  const [allProductVendors, setAllProductVendors] = useState<
+    Map<string, ProductVendor[]>
+  >(new Map());
+  const [newVendor, setNewVendor] = useState({ vendorId: "", cost: 0 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState({
+    manufacturerId: "",
+    name: "",
+    modelNumber: "",
+    description: "",
+    category: "",
+    unit: "ea.",
+    imageUrl: "",
+    productUrl: "",
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [productsData, manufacturersData, vendorsData] = await Promise.all([
+        productService.getAllProducts(),
+        manufacturerService.getAllManufacturers(),
+        vendorService.getAllVendors(),
+      ]);
+      setProducts(productsData);
+      setManufacturers(manufacturersData);
+      setVendors(vendorsData);
+
+      // Load product vendors for all products
+      const vendorsMap = new Map<string, ProductVendor[]>();
+      await Promise.all(
+        productsData.map(async (product) => {
+          try {
+            const pvs = await productVendorService.getAllByProduct(product.id);
+            vendorsMap.set(product.id, pvs);
+          } catch (err) {
+            console.error(
+              `Failed to load vendors for product ${product.id}:`,
+              err,
+            );
+            vendorsMap.set(product.id, []);
+          }
+        }),
+      );
+      setAllProductVendors(vendorsMap);
+    } catch (err) {
+      setError("Failed to load data");
+      console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenModal = (product?: Product) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormData({
+        manufacturerId: product.manufacturerId,
+        name: product.name,
+        modelNumber: product.modelNumber || "",
+        description: product.description || "",
+        category: product.category || "",
+        unit: product.unit || "ea.",
+        imageUrl: product.imageUrl || "",
+        productUrl: product.productUrl || "",
+      });
+    } else {
+      setEditingProduct(null);
+      setFormData({
+        manufacturerId: selectedManufacturerId || "",
+        name: "",
+        modelNumber: "",
+        description: "",
+        category: "",
+        unit: "ea.",
+        imageUrl: "",
+        productUrl: "",
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+    setFormData({
+      manufacturerId: "",
+      name: "",
+      modelNumber: "",
+      description: "",
+      category: "",
+      unit: "ea.",
+      imageUrl: "",
+      productUrl: "",
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingProduct) {
+        const updated = await productService.updateProduct(
+          editingProduct.id,
+          formData,
+        );
+        setProducts(products.map((p) => (p.id === updated.id ? updated : p)));
+      } else {
+        const created = await productService.createProduct(formData);
+        setProducts([...products, created]);
+      }
+      handleCloseModal();
+    } catch (err) {
+      setError("Failed to save product");
+      console.error("Error saving product:", err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      await productService.deleteProduct(id);
+      setProducts(products.filter((p) => p.id !== id));
+    } catch (err) {
+      setError("Failed to delete product");
+      console.error("Error deleting product:", err);
+    }
+  };
+
+  const handleOpenVendorModal = async (product: Product) => {
+    setManagingProduct(product);
+    try {
+      const pv = await productVendorService.getAllByProduct(product.id);
+      setProductVendors(pv);
+      setAllProductVendors(new Map(allProductVendors).set(product.id, pv));
+    } catch (err) {
+      console.error("Error loading product vendors:", err);
+      setProductVendors([]);
+    }
+    setIsVendorModalOpen(true);
+  };
+
+  const handleCloseVendorModal = () => {
+    setIsVendorModalOpen(false);
+    setManagingProduct(null);
+    setProductVendors([]);
+    setNewVendor({ vendorId: "", cost: 0 });
+  };
+
+  const handleAddVendor = async () => {
+    if (!managingProduct || !newVendor.vendorId) return;
+
+    try {
+      const created = await productVendorService.create({
+        productId: managingProduct.id,
+        vendorId: newVendor.vendorId,
+        cost: newVendor.cost,
+      });
+      const updated = [...productVendors, created];
+      setProductVendors(updated);
+      setAllProductVendors(
+        new Map(allProductVendors).set(managingProduct.id, updated),
+      );
+      setNewVendor({ vendorId: "", cost: 0 });
+    } catch (err) {
+      setError("Failed to add vendor");
+      console.error("Error adding vendor:", err);
+    }
+  };
+
+  const handleTogglePrimary = async (pv: ProductVendor) => {
+    if (!managingProduct) return;
+    try {
+      const updated = await productVendorService.update(pv.id, {
+        isPrimary: !pv.isPrimary,
+      });
+      const updatedList = productVendors.map(
+        (item) =>
+          item.id === updated.id ? updated : { ...item, isPrimary: false }, // Unset others
+      );
+      setProductVendors(updatedList);
+      setAllProductVendors(
+        new Map(allProductVendors).set(managingProduct.id, updatedList),
+      );
+    } catch (err) {
+      setError("Failed to update primary vendor");
+      console.error("Error updating primary vendor:", err);
+    }
+  };
+
+  const handleUpdateCost = async (pv: ProductVendor, newCost: number) => {
+    if (!managingProduct) return;
+    try {
+      const updated = await productVendorService.update(pv.id, {
+        cost: newCost,
+      });
+      const updatedList = productVendors.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
+      setProductVendors(updatedList);
+      setAllProductVendors(
+        new Map(allProductVendors).set(managingProduct.id, updatedList),
+      );
+    } catch (err) {
+      setError("Failed to update cost");
+      console.error("Error updating cost:", err);
+    }
+  };
+
+  const handleDeleteVendor = async (id: string) => {
+    if (
+      !confirm("Are you sure you want to remove this vendor?") ||
+      !managingProduct
+    )
+      return;
+
+    try {
+      await productVendorService.delete(id);
+      const updatedList = productVendors.filter((pv) => pv.id !== id);
+      setProductVendors(updatedList);
+      setAllProductVendors(
+        new Map(allProductVendors).set(managingProduct.id, updatedList),
+      );
+    } catch (err) {
+      setError("Failed to delete vendor");
+      console.error("Error deleting vendor:", err);
+    }
+  };
+
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").filter((line) => line.trim());
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+
+      const imported: Product[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",").map((v) => v.trim());
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || "";
+        });
+
+        // Map CSV columns to product fields
+        const productData = {
+          manufacturerId: row.manufacturerid || row.manufacturer_id || "",
+          name: row.name || row.productname || row.product_name || "",
+          modelNumber: row.modelnumber || row.model_number || row.model || "",
+          description: row.description || "",
+          category: row.category || "",
+          unit: row.unit || "ea.",
+          imageUrl: row.imageurl || row.image_url || row.image || "",
+          productUrl: row.producturl || row.product_url || row.url || "",
+        };
+
+        if (productData.manufacturerId && productData.name) {
+          const created = await productService.createProduct(productData);
+          imported.push(created);
+        }
+      }
+
+      setProducts([...products, ...imported]);
+      setIsCsvModalOpen(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      alert(`Successfully imported ${imported.length} products`);
+    } catch (err) {
+      setError("Failed to import CSV");
+      console.error("Error importing CSV:", err);
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    const template =
+      "manufacturerId,name,modelNumber,description,category,unit,imageUrl,productUrl\n";
+    const blob = new Blob([template], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "product_import_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Filter products based on view and search
+  const filteredProducts = products.filter((product) => {
+    // Filter by view
+    if (filterView === "manufacturer" && selectedManufacturerId) {
+      if (product.manufacturerId !== selectedManufacturerId) return false;
+    }
+
+    // Filter by vendor using product-vendor relationships
+    if (filterView === "vendor" && selectedVendorId) {
+      const productVendorList = allProductVendors.get(product.id) || [];
+      const hasVendor = productVendorList.some(
+        (pv) => pv.vendorId === selectedVendorId,
+      );
+      if (!hasVendor) return false;
+    }
+
+    // Filter by category
+    if (filterView === "category" && selectedCategory) {
+      if (product.category !== selectedCategory) return false;
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const manufacturer = manufacturers.find(
+        (m) => m.id === product.manufacturerId,
+      );
+      const productVendorList = allProductVendors.get(product.id) || [];
+      const vendorNames = productVendorList
+        .map((pv) => vendors.find((v) => v.id === pv.vendorId)?.name || "")
+        .join(" ");
+      return (
+        product.name.toLowerCase().includes(search) ||
+        product.modelNumber?.toLowerCase().includes(search) ||
+        product.description?.toLowerCase().includes(search) ||
+        product.category?.toLowerCase().includes(search) ||
+        manufacturer?.name.toLowerCase().includes(search) ||
+        vendorNames.toLowerCase().includes(search)
+      );
+    }
+
+    return true;
+  });
+
+  if (loading) return <div className="px-4 py-8">Loading products...</div>;
+
+  return (
+    <div className="px-4">
+      {/* Header */}
+      <div className="sm:flex sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage your product catalog
+          </p>
+        </div>
+        <div className="mt-4 sm:mt-0 flex gap-2">
+          <button
+            onClick={() => setIsCsvModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+          >
+            📊 Import CSV
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            + Add Product
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+
+      {/* Filter Controls */}
+      <div className="mt-4 flex flex-col sm:flex-row gap-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setFilterView("all");
+              setSelectedManufacturerId("");
+              setSelectedVendorId("");
+              setSelectedCategory("");
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              filterView === "all"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border hover:bg-gray-50"
+            }`}
+          >
+            All Products
+          </button>
+          <button
+            onClick={() => setFilterView("manufacturer")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              filterView === "manufacturer"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border hover:bg-gray-50"
+            }`}
+          >
+            By Manufacturer
+          </button>
+          <button
+            onClick={() => setFilterView("vendor")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              filterView === "vendor"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border hover:bg-gray-50"
+            }`}
+          >
+            By Vendor
+          </button>
+          <button
+            onClick={() => setFilterView("category")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              filterView === "category"
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 border hover:bg-gray-50"
+            }`}
+          >
+            By Category
+          </button>
+        </div>
+
+        {filterView === "manufacturer" && (
+          <select
+            value={selectedManufacturerId}
+            onChange={(e) => setSelectedManufacturerId(e.target.value)}
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">Select Manufacturer...</option>
+            {manufacturers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {filterView === "vendor" && (
+          <select
+            value={selectedVendorId}
+            onChange={(e) => setSelectedVendorId(e.target.value)}
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">Select Vendor...</option>
+            {vendors.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {filterView === "category" && (
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">Select Category...</option>
+            {Array.from(
+              new Set(products.map((p) => p.category).filter(Boolean)),
+            )
+              .sort()
+              .map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+          </select>
+        )}
+      </div>
+
+      {/* Search */}
+      <div className="mt-4">
+        <input
+          type="text"
+          placeholder="Search products by name, model, category, or manufacturer..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+
+      {/* Products Table */}
+      {filteredProducts.length === 0 ? (
+        <div className="mt-4 text-center py-12 bg-white rounded-lg shadow border">
+          <p className="text-gray-500">
+            {searchTerm || (filterView !== "all" && !selectedManufacturerId)
+              ? "No products found matching your criteria"
+              : "No products yet. Add your first product!"}
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 bg-white shadow rounded-lg overflow-hidden">
+          <table className="min-w-full text-xs">
+            <thead className="bg-gray-100 border-b border-gray-200">
+              <tr>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Product Name
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Model
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Mfr
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Category
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Unit
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Primary Vendor
+                </th>
+                <th className="px-2 py-1 text-right font-medium text-gray-600">
+                  Cost
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Links
+                </th>
+                <th className="px-2 py-1 text-right font-medium text-gray-600">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.map((product) => {
+                const manufacturer = manufacturers.find(
+                  (m) => m.id === product.manufacturerId,
+                );
+                const productVendorList =
+                  allProductVendors.get(product.id) || [];
+                const primaryVendor =
+                  productVendorList.find((pv) => pv.isPrimary) ||
+                  productVendorList[0];
+                const primaryVendorName = primaryVendor
+                  ? vendors.find((v) => v.id === primaryVendor.vendorId)?.name
+                  : null;
+                const hasSecondaryVendors = productVendorList.length > 1;
+                return (
+                  <tr
+                    key={product.id}
+                    className="hover:bg-gray-50 border-b border-gray-200"
+                  >
+                    <td className="px-2 py-1">
+                      <div className="font-medium text-gray-900">
+                        {product.name}
+                      </div>
+                      {product.description && (
+                        <div className="text-gray-500 truncate max-w-xs">
+                          {product.description}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
+                      {product.modelNumber || "-"}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
+                      {manufacturer?.name || "-"}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
+                      {product.category || "-"}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
+                      {product.unit || "-"}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
+                      {primaryVendorName ? (
+                        <div className="flex items-center gap-1">
+                          <span>{primaryVendorName}</span>
+                          {hasSecondaryVendors && (
+                            <span
+                              className="px-1 py-0.5 bg-gray-200 text-gray-700 rounded"
+                              title={`+${productVendorList.length - 1} more vendor${productVendorList.length - 1 > 1 ? "s" : ""}`}
+                            >
+                              +{productVendorList.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="px-2 py-1 text-right text-gray-900">
+                      {primaryVendor
+                        ? `$${primaryVendor.cost.toFixed(2)}`
+                        : "-"}
+                    </td>
+                    <td className="px-2 py-1">
+                      <div className="flex gap-2">
+                        {product.productUrl && (
+                          <a
+                            href={product.productUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 hover:text-indigo-900"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            🔗
+                          </a>
+                        )}
+                        {product.imageUrl && (
+                          <a
+                            href={product.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 hover:text-indigo-900"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            🖼️
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-2 py-1 text-right space-x-2">
+                      <button
+                        onClick={() => handleOpenVendorModal(product)}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Vendors
+                      </button>
+                      <button
+                        onClick={() => handleOpenModal(product)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Add/Edit Product Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingProduct ? "Edit Product" : "Add New Product"}
+              </h2>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Manufacturer *
+                  </label>
+                  <select
+                    required
+                    value={formData.manufacturerId}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        manufacturerId: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Manufacturer...</option>
+                    {manufacturers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Product Name *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Model Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.modelNumber}
+                    onChange={(e) =>
+                      setFormData({ ...formData, modelNumber: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) =>
+                      setFormData({ ...formData, category: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Unit
+                  </label>
+                  <select
+                    value={formData.unit}
+                    onChange={(e) =>
+                      setFormData({ ...formData, unit: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="ea.">ea.</option>
+                    <option value="lbs">lbs</option>
+                    <option value="sq. ft.">sq. ft.</option>
+                    <option value="linear ft.">linear ft.</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Product URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.productUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, productUrl: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Image URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, imageUrl: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
+                >
+                  {editingProduct ? "Update Product" : "Create Product"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {isCsvModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Import Products from CSV
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  Upload a CSV file with the following columns:
+                </p>
+                <ul className="text-xs text-gray-500 list-disc list-inside space-y-1">
+                  <li>manufacturerId (required)</li>
+                  <li>name (required)</li>
+                  <li>modelNumber</li>
+                  <li>description</li>
+                  <li>category</li>
+                  <li>unit (ea., lbs, sq. ft., linear ft.)</li>
+                  <li>imageUrl</li>
+                  <li>productUrl</li>
+                </ul>
+              </div>
+              <div className="mb-4">
+                <button
+                  onClick={downloadCsvTemplate}
+                  className="text-sm text-indigo-600 hover:text-indigo-700 underline"
+                >
+                  Download CSV Template
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCsvImport}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              />
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCsvModalOpen(false);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vendor Management Modal */}
+      {isVendorModalOpen && managingProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Manage Vendors - {managingProduct.name}
+              </h2>
+            </div>
+            <div className="p-6">
+              {/* Add New Vendor */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Add Vendor
+                </h3>
+                <div className="flex gap-3">
+                  <select
+                    value={newVendor.vendorId}
+                    onChange={(e) =>
+                      setNewVendor({ ...newVendor, vendorId: e.target.value })
+                    }
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Vendor...</option>
+                    {vendors
+                      .filter(
+                        (v) =>
+                          !productVendors.some((pv) => pv.vendorId === v.id),
+                      )
+                      .map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-gray-600">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Cost"
+                      value={newVendor.cost || ""}
+                      onChange={(e) =>
+                        setNewVendor({
+                          ...newVendor,
+                          cost: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-600">
+                      / {managingProduct?.unit || "ea."}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleAddVendor}
+                    disabled={!newVendor.vendorId}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Vendor List */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Current Vendors ({productVendors.length})
+                </h3>
+                {productVendors.length === 0 ? (
+                  <p className="text-sm text-gray-500 py-4 text-center">
+                    No vendors assigned yet
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {productVendors.map((pv) => {
+                      const vendor = vendors.find((v) => v.id === pv.vendorId);
+                      return (
+                        <div
+                          key={pv.id}
+                          className={`flex items-center gap-3 p-3 rounded-lg border ${
+                            pv.isPrimary
+                              ? "border-indigo-500 bg-indigo-50"
+                              : "border-gray-200 bg-white"
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                {vendor?.name || "Unknown Vendor"}
+                              </span>
+                              {pv.isPrimary && (
+                                <span className="px-2 py-0.5 text-xs font-semibold text-indigo-700 bg-indigo-100 rounded">
+                                  PRIMARY
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm text-gray-500">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={pv.cost}
+                              onChange={(e) =>
+                                handleUpdateCost(
+                                  pv,
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              onBlur={(e) =>
+                                handleUpdateCost(
+                                  pv,
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-500">
+                              / {managingProduct?.unit || "ea."}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleTogglePrimary(pv)}
+                            className={`px-3 py-1 text-xs font-medium rounded ${
+                              pv.isPrimary
+                                ? "bg-gray-200 text-gray-600"
+                                : "bg-indigo-600 text-white hover:bg-indigo-700"
+                            }`}
+                          >
+                            {pv.isPrimary ? "Primary" : "Set Primary"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVendor(pv.id)}
+                            className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-800"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                <button
+                  onClick={handleCloseVendorModal}
+                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProductList;
