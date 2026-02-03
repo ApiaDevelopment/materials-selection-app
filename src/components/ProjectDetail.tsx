@@ -3297,7 +3297,7 @@ const ProjectDetail = () => {
                               <td className="px-2 py-1 text-right text-gray-600">
                                 {previouslyReceived}
                               </td>
-                              <td className="px-2 py-1">
+                              <td className="px-2 py-1 text-right">
                                 <input
                                   type="number"
                                   className="w-16 px-1 py-0.5 text-xs border border-gray-300 rounded text-right"
