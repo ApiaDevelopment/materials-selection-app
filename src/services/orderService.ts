@@ -75,4 +75,8 @@ export const orderService = {
     );
     return response.data;
   },
+
+  deleteReceipt: async (receiptId: string): Promise<void> => {
+    await axios.delete(`${API_URL}/receipts/${receiptId}`);
+  },
 };
