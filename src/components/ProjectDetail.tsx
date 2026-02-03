@@ -3199,17 +3199,29 @@ const ProjectDetail = () => {
                   <table className="min-w-full text-xs border">
                     <thead className="bg-gray-100">
                       <tr>
-                        <th className="px-2 py-2 text-left font-medium text-gray-600 border-b">
+                        <th className="px-2 py-1 text-center font-medium text-gray-600 border-b w-8">
+                          ✓
+                        </th>
+                        <th className="px-2 py-1 text-left font-medium text-gray-600 border-b">
                           Product
                         </th>
-                        <th className="px-2 py-2 text-right font-medium text-gray-600 border-b">
+                        <th className="px-2 py-1 text-right font-medium text-gray-600 border-b">
+                          Item Qty
+                        </th>
+                        <th className="px-2 py-1 text-left font-medium text-gray-600 border-b">
+                          Unit
+                        </th>
+                        <th className="px-2 py-1 text-right font-medium text-gray-600 border-b">
                           Ordered
                         </th>
-                        <th className="px-2 py-2 text-right font-medium text-gray-600 border-b">
+                        <th className="px-2 py-1 text-right font-medium text-gray-600 border-b">
                           Previously Received
                         </th>
-                        <th className="px-2 py-2 text-right font-medium text-gray-600 border-b">
+                        <th className="px-2 py-1 text-right font-medium text-gray-600 border-b">
                           Receive Now
+                        </th>
+                        <th className="px-2 py-1 text-center font-medium text-gray-600 border-b">
+                          Partial
                         </th>
                       </tr>
                     </thead>
@@ -3227,30 +3239,106 @@ const ProjectDetail = () => {
                           const previouslyReceived = getOrderItemReceipts(
                             orderItem.id,
                           ).reduce((sum, r) => sum + r.receivedQuantity, 0);
+                          const formData = receiveForm.items[orderItem.id] || {
+                            qty: "",
+                            isPartial: false,
+                          };
+                          const isSelected = formData.qty !== "";
                           return (
                             <tr
                               key={orderItem.id}
                               className="border-b hover:bg-gray-50"
                             >
-                              <td className="px-2 py-2">
+                              <td className="px-2 py-1 text-center">
+                                <button
+                                  onClick={() => {
+                                    setReceiveForm({
+                                      ...receiveForm,
+                                      items: {
+                                        ...receiveForm.items,
+                                        [orderItem.id]: isSelected
+                                          ? { qty: "", isPartial: false }
+                                          : {
+                                              qty: (
+                                                orderItem.orderedQuantity -
+                                                previouslyReceived
+                                              ).toString(),
+                                              isPartial: false,
+                                            },
+                                      },
+                                    });
+                                  }}
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                    isSelected
+                                      ? "bg-green-600 border-green-600 text-white"
+                                      : "border-gray-300 hover:border-green-400"
+                                  }`}
+                                  title={
+                                    isSelected
+                                      ? "Remove from receipt"
+                                      : "Add to receipt"
+                                  }
+                                >
+                                  {isSelected && "✓"}
+                                </button>
+                              </td>
+                              <td className="px-2 py-1">
                                 {product?.name || item.name}
                               </td>
-                              <td className="px-2 py-2 text-right text-gray-600">
+                              <td className="px-2 py-1 text-right text-gray-600">
                                 {orderItem.orderedQuantity}
                               </td>
-                              <td className="px-2 py-2 text-right text-gray-600">
+                              <td className="px-2 py-1 text-gray-600">
+                                {item.unit || ""}
+                              </td>
+                              <td className="px-2 py-1 text-right text-gray-600">
+                                {orderItem.orderedQuantity}
+                              </td>
+                              <td className="px-2 py-1 text-right text-gray-600">
                                 {previouslyReceived}
                               </td>
-                              <td className="px-2 py-2">
+                              <td className="px-2 py-1">
                                 <input
                                   type="number"
-                                  className="w-20 px-2 py-1 border border-gray-300 rounded text-right"
+                                  className="w-16 px-1 py-0.5 text-xs border border-gray-300 rounded text-right"
                                   placeholder="0"
                                   step="0.01"
+                                  value={formData.qty}
+                                  onChange={(e) =>
+                                    setReceiveForm({
+                                      ...receiveForm,
+                                      items: {
+                                        ...receiveForm.items,
+                                        [orderItem.id]: {
+                                          ...formData,
+                                          qty: e.target.value,
+                                        },
+                                      },
+                                    })
+                                  }
                                   max={
                                     orderItem.orderedQuantity -
                                     previouslyReceived
                                   }
+                                />
+                              </td>
+                              <td className="px-2 py-1 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.isPartial}
+                                  onChange={(e) =>
+                                    setReceiveForm({
+                                      ...receiveForm,
+                                      items: {
+                                        ...receiveForm.items,
+                                        [orderItem.id]: {
+                                          ...formData,
+                                          isPartial: e.target.checked,
+                                        },
+                                      },
+                                    })
+                                  }
+                                  className="w-4 h-4"
                                 />
                               </td>
                             </tr>
