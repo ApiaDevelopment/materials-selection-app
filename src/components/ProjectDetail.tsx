@@ -134,6 +134,12 @@ const ProjectDetail = () => {
       setOrders(ordersData);
       setOrderItems(orderItemsData);
 
+      // Load receipts for all orders
+      const allReceipts = await Promise.all(
+        ordersData.map((order) => orderService.getReceipts(order.id))
+      );
+      setReceipts(allReceipts.flat());
+
       // Auto-expand all sections
       const allIds = new Set<string>([
         ...categoriesData.map((c) => c.id),
