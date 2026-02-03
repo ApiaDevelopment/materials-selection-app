@@ -650,7 +650,7 @@ const ProjectDetail = () => {
     }
 
     try {
-      await Promise.all(receipts.map((receipt) => orderService.deleteReceipt(receipt.id)));
+      // await Promise.all(receipts.map((receipt) => orderService.deleteReceipt(receipt.id)));
       const updatedLineItems = lineItems.filter(item => item.status === "received" || item.status === "part recvd");
       await Promise.all(
         updatedLineItems.map((item) =>
