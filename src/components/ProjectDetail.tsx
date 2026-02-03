@@ -46,7 +46,7 @@ const ProjectDetail = () => {
   );
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [receipts] = useState<Receipt[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showOrderListModal, setShowOrderListModal] = useState(false);
@@ -59,6 +59,15 @@ const ProjectDetail = () => {
   const [expandedCategoryLineItems, setExpandedCategoryLineItems] = useState<
     Set<string>
   >(new Set());
+  const [receiveForm, setReceiveForm] = useState<{
+    receivedDate: string;
+    notes: string;
+    items: Record<string, { qty: string; isPartial: boolean }>;
+  }>({
+    receivedDate: new Date().toISOString().split("T")[0],
+    notes: "",
+    items: {},
+  });
   const [orderForm, setOrderForm] = useState<{
     orderNumber: string;
     orderDate: string;
