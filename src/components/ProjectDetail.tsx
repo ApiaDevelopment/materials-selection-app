@@ -593,6 +593,34 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleClearAllReceipts = async () => {
+    if (!id) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete all receipts for this project? This cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await Promise.all(receipts.map((receipt) => orderService.deleteReceipt(receipt.id)));
+      const updatedLineItems = lineItems.filter(item => item.status === "received" || item.status === "part recvd");
+      await Promise.all(
+        updatedLineItems.map((item) =>
+          lineItemService.update(item.id, { status: "ordered" })
+        )
+      );
+      setReceipts([]);
+      setLineItems(lineItems.map(item => 
+        (item.status === "received" || item.status === "part recvd") ? { ...item, status: "ordered" } : item
+      ));
+    } catch (err) {
+      console.error("Failed to clear receipts:", err);
+      alert("Failed to clear receipts. Please try again.");
+    }
+  };
+
   const handleOpenReceiveModal = (orderId: string) => {
     setSelectedOrderId(orderId);
     setShowReceiveModal(true);
@@ -768,6 +796,18 @@ const ProjectDetail = () => {
             🗑️ Clear All Orders ({orders.length})
           </button>
         )}
+        <button
+          onClick={handleClearAllReceipts}
+          disabled={receipts.length === 0}
+          className={`px-3 py-1 text-sm border rounded ${
+            receipts.length > 0
+              ? "text-orange-600 hover:text-orange-900 border-orange-300 hover:bg-orange-50"
+              : "text-gray-400 border-gray-200 cursor-not-allowed"
+          }`}
+          title={receipts.length > 0 ? "Delete all receipts for this project" : "No receipts to delete"}
+        >
+          🗑️ Clear All Receipts ({receipts.length})
+        </button>
       </div>
 
       {/* Spreadsheet-like Categories and Line Items */}
