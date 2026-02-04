@@ -108,6 +108,7 @@ const ProjectDetail = () => {
     useState<string>("");
   const [insertQuantity, setInsertQuantity] = useState<number>(1);
   const [insertUnitCost, setInsertUnitCost] = useState<number>(0);
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -1092,7 +1093,7 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-left font-medium text-gray-600">
                             Item
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                             Material
                           </th>
                           <th className="px-2 py-1 text-left font-medium text-gray-600">
@@ -1331,7 +1332,7 @@ const ProjectDetail = () => {
                                 className="border-b border-gray-100 hover:bg-gray-50"
                               >
                                 <td className="px-2 py-1">{item.name}</td>
-                                <td className="px-2 py-1 text-gray-600">
+                                <td className="px-2 py-1 text-gray-600 truncate max-w-[6rem]" title={item.material}>
                                   {item.material}
                                 </td>
                                 <td className="px-2 py-1 text-gray-600">
@@ -1419,21 +1420,35 @@ const ProjectDetail = () => {
                                     ✏️
                                   </button>
                                 </td>
-                                <td className="px-2 py-1 text-right space-x-1">
+                                <td className="px-2 py-1 text-right relative">
                                   <button
-                                    onClick={() => handleStartModalEdit(item)}
-                                    className="text-indigo-600 hover:text-indigo-900"
+                                    onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                    className="text-gray-600 hover:text-gray-900"
                                   >
-                                    Edit
+                                    ⋮
                                   </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteLineItem(item.id)
-                                    }
-                                    className="text-red-600 hover:text-red-900"
-                                  >
-                                    Del
-                                  </button>
+                                  {openActionMenu === item.id && (
+                                    <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                      <button
+                                        onClick={() => {
+                                          handleStartModalEdit(item);
+                                          setOpenActionMenu(null);
+                                        }}
+                                        className="block w-full text-left px-3 py-2 text-xs text-indigo-600 hover:bg-gray-50"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          handleDeleteLineItem(item.id);
+                                          setOpenActionMenu(null);
+                                        }}
+                                        className="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </tr>
                               {expandedCategoryLineItems.has(item.id) &&
@@ -1816,7 +1831,7 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-left font-medium text-gray-600">
                                 Item
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                                 Material
                               </th>
                               <th className="px-2 py-1 text-left font-medium text-gray-600">
@@ -1994,7 +2009,7 @@ const ProjectDetail = () => {
                                     {category?.name || "-"}
                                   </td>
                                   <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600">
+                                  <td className="px-2 py-1 text-gray-600 truncate max-w-[6rem]" title={item.material}>
                                     {item.material}
                                   </td>
                                   <td className="px-2 py-1 text-gray-600">
@@ -2045,21 +2060,35 @@ const ProjectDetail = () => {
                                       ✏️
                                     </button>
                                   </td>
-                                  <td className="px-2 py-1 text-right space-x-1">
+                                  <td className="px-2 py-1 text-right relative">
                                     <button
-                                      onClick={() => handleStartModalEdit(item)}
-                                      className="text-indigo-600 hover:text-indigo-900"
+                                      onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                      className="text-gray-600 hover:text-gray-900"
                                     >
-                                      Edit
+                                      ⋮
                                     </button>
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteLineItem(item.id)
-                                      }
-                                      className="text-red-600 hover:text-red-900"
-                                    >
-                                      Del
-                                    </button>
+                                    {openActionMenu === item.id && (
+                                      <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                        <button
+                                          onClick={() => {
+                                            handleStartModalEdit(item);
+                                            setOpenActionMenu(null);
+                                          }}
+                                          className="block w-full text-left px-3 py-2 text-xs text-indigo-600 hover:bg-gray-50"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            handleDeleteLineItem(item.id);
+                                            setOpenActionMenu(null);
+                                          }}
+                                          className="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -2132,7 +2161,7 @@ const ProjectDetail = () => {
                             <th className="px-2 py-1 text-left font-medium text-gray-600">
                               Item
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                               Material
                             </th>
                             <th className="px-2 py-1 text-left font-medium text-gray-600">
@@ -2361,7 +2390,7 @@ const ProjectDetail = () => {
                                     {category?.name || "-"}
                                   </td>
                                   <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600">
+                                  <td className="px-2 py-1 text-gray-600 truncate max-w-[6rem]" title={item.material}>
                                     {item.material}
                                   </td>
                                   <td className="px-2 py-1 text-gray-600">
@@ -2444,21 +2473,35 @@ const ProjectDetail = () => {
                                       ✏️
                                     </button>
                                   </td>
-                                  <td className="px-2 py-1 text-right space-x-1">
+                                  <td className="px-2 py-1 text-right relative">
                                     <button
-                                      onClick={() => handleStartModalEdit(item)}
-                                      className="text-indigo-600 hover:text-indigo-900"
+                                      onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                      className="text-gray-600 hover:text-gray-900"
                                     >
-                                      Edit
+                                      ⋮
                                     </button>
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteLineItem(item.id)
-                                      }
-                                      className="text-red-600 hover:text-red-900"
-                                    >
-                                      Del
-                                    </button>
+                                    {openActionMenu === item.id && (
+                                      <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                        <button
+                                          onClick={() => {
+                                            handleStartModalEdit(item);
+                                            setOpenActionMenu(null);
+                                          }}
+                                          className="block w-full text-left px-3 py-2 text-xs text-indigo-600 hover:bg-gray-50"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            handleDeleteLineItem(item.id);
+                                            setOpenActionMenu(null);
+                                          }}
+                                          className="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                                 {expandedLineItems.has(item.id) &&
