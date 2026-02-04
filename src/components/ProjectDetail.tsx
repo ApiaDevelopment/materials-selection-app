@@ -3151,12 +3151,12 @@ const ProjectDetail = () => {
       {/* Order List Modal */}
       {showOrderListModal && selectedVendorId && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-6 w-full max-w-2xl">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-2xl">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Orders for {vendors.find((v) => v.id === selectedVendorId)?.name}
             </h3>
 
-            <div className="space-y-2 mb-6">
+            <div className="space-y-2 mb-4">
               {getVendorOrders(selectedVendorId).map((order) => {
                 const itemCount = orderItems.filter(
                   (oi) => oi.orderId === order.id,
@@ -3165,24 +3165,24 @@ const ProjectDetail = () => {
                   <button
                     key={order.id}
                     onClick={() => handleEditOrder(order.id)}
-                    className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-indigo-300 transition-colors"
+                    className="w-full text-left p-2 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-indigo-300 transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-xs text-gray-900">
                           Order #{order.orderNumber}
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
+                        <div className="text-xs text-gray-600 mt-0.5">
                           {new Date(order.orderDate).toLocaleDateString()} •{" "}
                           {itemCount} item{itemCount !== 1 ? "s" : ""}
                         </div>
                         {order.notes && (
-                          <div className="text-sm text-gray-500 mt-1">
+                          <div className="text-xs text-gray-500 mt-0.5">
                             {order.notes}
                           </div>
                         )}
                       </div>
-                      <div className="text-indigo-600 text-sm">Edit →</div>
+                      <div className="text-indigo-600 text-xs">Edit →</div>
                     </div>
                   </button>
                 );
@@ -3195,7 +3195,7 @@ const ProjectDetail = () => {
                   setShowOrderListModal(false);
                   setSelectedVendorId(null);
                 }}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
               >
                 Close
               </button>
