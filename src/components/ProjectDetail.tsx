@@ -1,28 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-    categoryService,
-    lineItemService,
-    manufacturerService,
-    orderService,
-    productService,
-    productVendorService,
-    projectService,
-    vendorService,
+  categoryService,
+  lineItemService,
+  manufacturerService,
+  orderService,
+  productService,
+  productVendorService,
+  projectService,
+  vendorService,
 } from "../services";
 import type {
-    Category,
-    CreateCategoryRequest,
-    CreateLineItemRequest,
-    LineItem,
-    Manufacturer,
-    Order,
-    OrderItem,
-    Product,
-    ProductVendor,
-    Project,
-    Receipt,
-    Vendor,
+  Category,
+  CreateCategoryRequest,
+  CreateLineItemRequest,
+  LineItem,
+  Manufacturer,
+  Order,
+  OrderItem,
+  Product,
+  ProductVendor,
+  Project,
+  Receipt,
+  Vendor,
 } from "../types";
 
 const ProjectDetail = () => {
@@ -32,7 +32,22 @@ const ProjectDetail = () => {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+
+  /**
+   * PRODUCT STATE - Critical for Vendor/Manufacturer/Product Coordination
+   *
+   * - products: Filtered display list (changes based on vendor/manufacturer selections)
+   * - allProducts: Full unfiltered reference list (immutable, prevents circular filtering)
+   *
+   * Why two lists?
+   * When user selects manufacturer, we filter products. But getFilteredManufacturers()
+   * needs to see ALL products to determine which manufacturers are available for selected vendor.
+   * Using filtered list would create circular dependency where selecting manufacturer
+   * removes itself from the manufacturer dropdown.
+   */
   const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]); // Full unfiltered list
+
   const [loading, setLoading] = useState(true);
   const [showAddRow, setShowAddRow] = useState<string | null>(null); // categoryId
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -152,6 +167,7 @@ const ProjectDetail = () => {
       setVendors(vendorsData);
       setManufacturers(manufacturersData);
       setProducts(productsData);
+      setAllProducts(productsData); // Store full unfiltered list
       setOrders(ordersData);
       setOrderItems(orderItemsData);
 
@@ -275,7 +291,13 @@ const ProjectDetail = () => {
         unitCost: 0,
         notes: "",
         status: "pending",
+        vendorId: undefined,
+        manufacturerId: undefined,
+        productId: undefined,
+        modelNumber: undefined,
       });
+      // Reset products list to full list
+      setProducts(allProducts);
     } catch (err) {
       alert("Failed to add line item");
       console.error("Error adding line item:", err);
@@ -337,25 +359,226 @@ const ProjectDetail = () => {
     }
   };
 
-  const handleManufacturerChange = async (manufacturerId: string) => {
-    setNewItem({ ...newItem, manufacturerId: manufacturerId || undefined });
-    if (manufacturerId) {
-      const filtered =
-        await productService.getProductsByManufacturer(manufacturerId);
+  // =============================================================================
+  // VENDOR / MANUFACTURER / PRODUCT COORDINATION LOGIC
+  // =============================================================================
+  /**
+   * Overview: Handles inline "Add Line Item" coordinated selection of Vendor,
+   * Manufacturer, and Product fields. Supports three user workflows (scenarios)
+   * while maintaining data integrity through product-vendor relationships.
+   *
+   * THREE SCENARIOS SUPPORTED:
+   *
+   * SCENARIO A: Product-First Selection
+   *   - User selects Product first
+   *   - Auto-populates: Manufacturer (from product), Vendor (primary or first)
+   *   - Vendor list: Filtered to only vendors carrying this product
+   *   - User can change vendor but only to valid options
+   *
+   * SCENARIO B: Manufacturer-First Selection
+   *   - User selects Manufacturer first
+   *   - Filters: Products to that manufacturer, Vendors to those carrying manufacturer's products
+   *   - User selects Product → auto-selects primary vendor from filtered list
+   *   - Changing manufacturer clears product/vendor (data integrity)
+   *
+   * SCENARIO C: Vendor-First Selection
+   *   - User selects Vendor first
+   *   - Filters: Manufacturers and Products to those carried by vendor
+   *   - User selects Manufacturer → further filters products (KEEPS vendor)
+   *   - User selects Product → all fields populated, vendor already set
+   *
+   * KEY ARCHITECTURAL DECISIONS:
+   *
+   * 1. Product-Vendor Relationship: 1-to-many
+   *    - One product can be sold by multiple vendors at different prices
+   *    - When product selected, vendor list ALWAYS filtered to valid vendors
+   *
+   * 2. Dual Product Lists (products vs allProducts):
+   *    - products: Filtered display list (changes based on selections)
+   *    - allProducts: Immutable full list (prevents circular filtering bugs)
+   *
+   * 3. Manufacturer Change Behavior:
+   *    - If changing (one value → another): Clear all dependent fields
+   *    - If selecting first time WITH vendor already set: Keep vendor (Scenario C)
+   *
+   * 4. Material Field: Read-only, populated from product.description
+   *
+   * 5. Reset on Save/Cancel: Clears all fields + resets products to allProducts
+   *
+   * TODO: Review Insert Product modal for similar coordination needs
+   */
+
+  /**
+   * SCENARIO C: Vendor-First Selection Flow
+   *
+   * User selects Vendor → filters Manufacturer & Product lists → selects Manufacturer
+   * → further filters Products → selects Product → all fields populated
+   *
+   * Key behaviors:
+   * - Vendor selection filters products to those the vendor carries
+   * - If manufacturer already selected, filters by BOTH vendor AND manufacturer
+   * - If product already selected, expands to full list (allows changing vendor)
+   * - Preserves vendor when manufacturer subsequently selected
+   */
+  const handleNewItemVendorChange = async (vendorId: string) => {
+    const vendor = vendorId || undefined;
+    setNewItem({ ...newItem, vendorId: vendor });
+
+    // If product is already selected and we're now selecting a vendor, reset to full list
+    if (vendorId && newItem.productId) {
+      setProducts(allProducts);
+      return;
+    }
+
+    // Filter products based on vendor selection
+    if (vendorId) {
+      // Get all products this vendor carries
+      const vendorProductIds = productVendors
+        .filter((pv: ProductVendor) => pv.vendorId === vendorId)
+        .map((pv: ProductVendor) => pv.productId);
+
+      const allProductsList = await productService.getAllProducts();
+      let filtered = allProductsList.filter((p) =>
+        vendorProductIds.includes(p.id),
+      );
+
+      // If manufacturer is also selected, filter further
+      if (newItem.manufacturerId) {
+        filtered = filtered.filter(
+          (p) => p.manufacturerId === newItem.manufacturerId,
+        );
+      }
+
       setProducts(filtered);
     } else {
-      const all = await productService.getAllProducts();
-      setProducts(all);
+      // No vendor selected - show all products (or filter by manufacturer if selected)
+      if (newItem.manufacturerId) {
+        const filtered = await productService.getProductsByManufacturer(
+          newItem.manufacturerId,
+        );
+        setProducts(filtered);
+      } else {
+        const all = await productService.getAllProducts();
+        setProducts(all);
+      }
     }
   };
 
+  /**
+   * SCENARIO B: Manufacturer-First Selection Flow
+   * AND handles Scenario C when vendor was selected first
+   *
+   * Scenario B: User selects Manufacturer → filters Vendor & Product lists → selects Product
+   * → auto-populates vendor (primary or first)
+   *
+   * Scenario C continuation: If vendor already selected (no prior manufacturer),
+   * selecting manufacturer keeps vendor and filters products by BOTH.
+   *
+   * Key behaviors:
+   * - Manufacturer change (one value to another) clears all dependent fields for data integrity
+   * - Manufacturer first-time selection (with vendor already set) preserves vendor
+   * - Manufacturer selection filters products to that manufacturer's products
+   * - When manufacturer changed, clears product/vendor/material/unit/cost/name/modelNumber
+   */
+  const handleManufacturerChange = async (manufacturerId: string) => {
+    const previousManufacturerId = newItem.manufacturerId;
+    const vendorAlreadySelected = newItem.vendorId && !previousManufacturerId;
+
+    if (vendorAlreadySelected && manufacturerId) {
+      // Scenario C: Vendor selected first, now selecting manufacturer for first time
+      // Keep vendor, just update manufacturer and filter products by BOTH
+      setNewItem({
+        ...newItem,
+        manufacturerId: manufacturerId || undefined,
+      });
+
+      // Filter products by BOTH vendor AND manufacturer
+      const vendorProductIds = productVendors
+        .filter((pv: ProductVendor) => pv.vendorId === newItem.vendorId)
+        .map((pv: ProductVendor) => pv.productId);
+
+      const filtered = allProducts.filter(
+        (p) =>
+          p.manufacturerId === manufacturerId &&
+          vendorProductIds.includes(p.id),
+      );
+      setProducts(filtered);
+    } else {
+      // Manufacturer being changed or selected without vendor - clear dependent fields
+      setNewItem({
+        ...newItem,
+        manufacturerId: manufacturerId || undefined,
+        productId: undefined,
+        vendorId: undefined,
+        modelNumber: undefined,
+        material: "",
+        unit: "",
+        unitCost: 0,
+        name: "",
+      });
+
+      // Filter products by manufacturer only
+      if (manufacturerId) {
+        const allFiltered =
+          await productService.getProductsByManufacturer(manufacturerId);
+        setProducts(allFiltered);
+      } else {
+        // No manufacturer - show all products
+        const all = await productService.getAllProducts();
+        setProducts(all);
+      }
+    }
+  };
+
+  /**
+   * SCENARIO A: Product-First Selection Flow
+   *
+   * User selects Product → auto-populates Manufacturer & Vendor (primary)
+   * → Vendor list filtered to product's vendors only
+   *
+   * Key behaviors:
+   * - Auto-populates manufacturer from product
+   * - If no vendor selected: auto-selects primary vendor (or first if no primary)
+   * - If vendor already selected: uses that vendor's cost
+   * - Always filters vendor list to only vendors carrying this product
+   * - Populates material, unit, cost, name, modelNumber from product/vendor data
+   * - Expands product list to full allProducts after selection
+   *
+   * Vendor count handling:
+   * - 0 vendors: No vendor selected, cost = 0
+   * - 1 vendor: Auto-select that vendor
+   * - 2+ vendors: Auto-select primary (or first), keep list filtered to valid vendors
+   */
   const handleProductSelect = async (productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (product) {
-      // Get primary vendor and cost
-      const { productVendorService } = await import("../services");
-      const primaryVendor =
-        await productVendorService.getPrimaryVendor(productId);
+      // Get all vendors for this product
+      const productVendorList = productVendors.filter(
+        (pv: ProductVendor) => pv.productId === productId,
+      );
+
+      // Determine which vendor to use
+      let selectedVendorId = newItem.vendorId;
+      let cost = 0;
+
+      if (selectedVendorId) {
+        // Vendor already selected - get cost for that vendor
+        const vendorCost = productVendors.find(
+          (pv: ProductVendor) =>
+            pv.productId === productId && pv.vendorId === selectedVendorId,
+        );
+        cost = vendorCost?.cost || 0;
+      } else if (productVendorList.length >= 1) {
+        // 1 or more vendors - auto-select primary vendor
+        const primaryVendor =
+          productVendorList.find((pv) => pv.isPrimary) || productVendorList[0];
+        selectedVendorId = primaryVendor.vendorId;
+        cost = primaryVendor.cost;
+      } else {
+        // No vendors - leave empty
+        selectedVendorId = undefined;
+        cost = 0;
+      }
 
       setNewItem({
         ...newItem,
@@ -365,9 +588,12 @@ const ProjectDetail = () => {
         name: product.name,
         material: product.description || "",
         unit: product.unit || "",
-        vendorId: primaryVendor?.vendorId || undefined,
-        unitCost: primaryVendor?.cost || 0,
+        vendorId: selectedVendorId,
+        unitCost: cost,
       });
+
+      // Reset products list to full (manufacturer list also goes to full via getFilteredManufacturers)
+      setProducts(allProducts);
     }
   };
 
@@ -459,6 +685,103 @@ const ProjectDetail = () => {
       lineItems.filter((item) => item.vendorId).map((item) => item.vendorId),
     );
     return vendors.filter((v) => vendorIds.has(v.id));
+  };
+
+  /**
+   * Filters manufacturer dropdown based on current selection state
+   *
+   * Priority rules:
+   * 1. If product selected: Show ALL manufacturers (selection locked, allow exploration)
+   * 2. If vendor selected (no product): Show only manufacturers whose products this vendor carries
+   * 3. If neither selected: Show all manufacturers
+   *
+   * CRITICAL: Uses allProducts (not filtered products) to prevent circular filtering
+   * where selecting a manufacturer would remove itself from the list.
+   */
+  /**
+   * Filters manufacturer dropdown based on current selection state
+   *
+   * Priority rules:
+   * 1. If product selected: Show ALL manufacturers (selection locked, allow exploration)
+   * 2. If vendor selected (no product): Show only manufacturers whose products this vendor carries
+   * 3. If neither selected: Show all manufacturers
+   *
+   * CRITICAL: Uses allProducts (not filtered products) to prevent circular filtering
+   * where selecting a manufacturer would remove itself from the list.
+   */
+  const getFilteredManufacturers = () => {
+    // If product is selected, show all manufacturers (selection is locked in)
+    if (newItem.productId) {
+      return manufacturers;
+    }
+
+    if (!newItem.vendorId) {
+      // No vendor selected - show all manufacturers
+      return manufacturers;
+    }
+
+    // Get all products this vendor carries
+    const vendorProductIds = productVendors
+      .filter((pv: ProductVendor) => pv.vendorId === newItem.vendorId)
+      .map((pv: ProductVendor) => pv.productId);
+
+    // Get unique manufacturer IDs from those products (use full product list)
+    const manufacturerIds = new Set(
+      allProducts
+        .filter((p) => vendorProductIds.includes(p.id))
+        .map((p) => p.manufacturerId)
+        .filter((id) => id !== undefined),
+    );
+
+    // Return manufacturers that have products with this vendor
+    return manufacturers.filter((m) => manufacturerIds.has(m.id));
+  };
+
+  /**
+   * Filters vendor dropdown based on current selection state
+   *
+   * Priority rules:
+   * 1. If product selected: ALWAYS show only vendors carrying this specific product
+   *    - Ensures valid product-vendor relationship (product can have multiple vendors)
+   *    - Even if vendor already selected, list stays filtered to valid options
+   * 2. If manufacturer selected (no product): Show vendors carrying that manufacturer's products
+   * 3. If neither selected: Show all vendors
+   *
+   * Product-Vendor Relationship:
+   * - 1-to-many: One product can be sold by multiple vendors at different prices
+   * - Must maintain data integrity by only showing valid vendor options
+   */
+  const getFilteredVendors = () => {
+    // If product is selected - ALWAYS filter to vendors carrying this specific product
+    // (regardless of whether vendor is selected or not)
+    if (newItem.productId) {
+      const vendorIds = new Set(
+        productVendors
+          .filter((pv: ProductVendor) => pv.productId === newItem.productId)
+          .map((pv: ProductVendor) => pv.vendorId),
+      );
+      return vendors.filter((v) => vendorIds.has(v.id));
+    }
+
+    // If manufacturer selected (no product) - filter to vendors carrying that manufacturer's products
+    if (newItem.manufacturerId) {
+      const manufacturerProductIds = allProducts
+        .filter((p) => p.manufacturerId === newItem.manufacturerId)
+        .map((p) => p.id);
+
+      const vendorIds = new Set(
+        productVendors
+          .filter((pv: ProductVendor) =>
+            manufacturerProductIds.includes(pv.productId),
+          )
+          .map((pv: ProductVendor) => pv.vendorId),
+      );
+
+      return vendors.filter((v) => vendorIds.has(v.id));
+    }
+
+    // No manufacturer or product selected - show all vendors
+    return vendors;
   };
 
   const toggleSection = (sectionId: string) => {
@@ -1073,12 +1396,19 @@ const ProjectDetail = () => {
                         >
                           Delete
                         </button>
-                        {showAddRow !== category.id && (
+                        {showAddRow !== category.id ? (
                           <button
                             onClick={() => setShowAddRow(category.id)}
                             className="text-purple-600 hover:text-purple-900 text-xs font-medium"
                           >
                             + Add Item
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setShowAddRow(null)}
+                            className="text-gray-600 hover:text-gray-900 text-xs font-medium"
+                          >
+                            Cancel Add
                           </button>
                         )}
                       </div>
@@ -1601,32 +1931,20 @@ const ProjectDetail = () => {
                               {newItem.modelNumber || "-"}
                             </td>
                             <td className="px-2 py-1">
-                              <input
-                                type="text"
-                                value={newItem.material}
-                                onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    material: e.target.value,
-                                  })
-                                }
-                                placeholder="Material"
-                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                              />
+                              <div className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs bg-gray-50 text-gray-600">
+                                {newItem.material || "-"}
+                              </div>
                             </td>
                             <td className="px-2 py-1">
                               <select
                                 value={newItem.vendorId || ""}
                                 onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    vendorId: e.target.value || undefined,
-                                  })
+                                  handleNewItemVendorChange(e.target.value)
                                 }
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                               >
                                 <option value="">-</option>
-                                {vendors.map((v) => (
+                                {getFilteredVendors().map((v) => (
                                   <option key={v.id} value={v.id}>
                                     {v.name}
                                   </option>
@@ -1642,7 +1960,7 @@ const ProjectDetail = () => {
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                               >
                                 <option value="">-</option>
-                                {manufacturers.map((m) => (
+                                {getFilteredManufacturers().map((m) => (
                                   <option key={m.id} value={m.id}>
                                     {m.name}
                                   </option>
@@ -1760,7 +2078,13 @@ const ProjectDetail = () => {
                                     unitCost: 0,
                                     notes: "",
                                     status: "pending",
+                                    vendorId: undefined,
+                                    manufacturerId: undefined,
+                                    productId: undefined,
+                                    modelNumber: undefined,
                                   });
+                                  // Reset products list to full list
+                                  setProducts(allProducts);
                                 }}
                                 className="text-gray-600 hover:text-gray-900"
                               >
@@ -2750,12 +3074,15 @@ const ProjectDetail = () => {
                       const vendorIds = productVendorList.map(
                         (pv) => pv.vendorId,
                       );
-                      
+
                       // Include the current vendor if it's not in the list
-                      if (editingItem.vendorId && !vendorIds.includes(editingItem.vendorId)) {
+                      if (
+                        editingItem.vendorId &&
+                        !vendorIds.includes(editingItem.vendorId)
+                      ) {
                         vendorIds.push(editingItem.vendorId);
                       }
-                      
+
                       return vendors
                         .filter((v) => vendorIds.includes(v.id))
                         .map((v) => (
