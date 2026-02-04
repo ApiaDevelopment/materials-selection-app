@@ -1251,18 +1251,8 @@ const ProjectDetail = () => {
                                     className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
                                   />
                                 </td>
-                                <td className="px-2 py-1">
-                                  <input
-                                    type="text"
-                                    value={editingItem.unit}
-                                    onChange={(e) =>
-                                      setEditingItem({
-                                        ...editingItem,
-                                        unit: e.target.value,
-                                      })
-                                    }
-                                    className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                  />
+                                <td className="px-2 py-1 text-gray-600">
+                                  {editingItem.unit}
                                 </td>
                                 <td className="px-2 py-1">
                                   <input
@@ -1861,7 +1851,7 @@ const ProjectDetail = () => {
                               const category = categories.find(
                                 (c) => c.id === item.categoryId,
                               );
-                              
+
                               if (isEditing && editingItem) {
                                 return (
                                   <tr
@@ -1900,14 +1890,17 @@ const ProjectDetail = () => {
                                     <td className="px-2 py-1 text-gray-600">
                                       {editingItem.manufacturerId
                                         ? manufacturers.find(
-                                            (m) => m.id === editingItem.manufacturerId,
+                                            (m) =>
+                                              m.id ===
+                                              editingItem.manufacturerId,
                                           )?.name
                                         : "-"}
                                     </td>
                                     <td className="px-2 py-1 text-gray-600">
                                       {editingItem.productId
                                         ? products.find(
-                                            (p) => p.id === editingItem.productId,
+                                            (p) =>
+                                              p.id === editingItem.productId,
                                           )?.name
                                         : "-"}
                                     </td>
@@ -1918,24 +1911,15 @@ const ProjectDetail = () => {
                                         onChange={(e) =>
                                           setEditingItem({
                                             ...editingItem,
-                                            quantity: parseFloat(e.target.value) || 0,
+                                            quantity:
+                                              parseFloat(e.target.value) || 0,
                                           })
                                         }
                                         className="w-16 px-1 py-0.5 border rounded text-xs text-right"
                                       />
                                     </td>
-                                    <td className="px-2 py-1">
-                                      <input
-                                        type="text"
-                                        value={editingItem.unit}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            unit: e.target.value,
-                                          })
-                                        }
-                                        className="w-12 px-1 py-0.5 border rounded text-xs"
-                                      />
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {editingItem.unit}
                                     </td>
                                     <td className="px-2 py-1">
                                       <input
@@ -1944,7 +1928,8 @@ const ProjectDetail = () => {
                                         onChange={(e) =>
                                           setEditingItem({
                                             ...editingItem,
-                                            unitCost: parseFloat(e.target.value) || 0,
+                                            unitCost:
+                                              parseFloat(e.target.value) || 0,
                                           })
                                         }
                                         className="w-20 px-1 py-0.5 border rounded text-xs text-right"
@@ -1952,7 +1937,11 @@ const ProjectDetail = () => {
                                       />
                                     </td>
                                     <td className="px-2 py-1 text-right font-medium">
-                                      ${(editingItem.quantity * editingItem.unitCost).toFixed(2)}
+                                      $
+                                      {(
+                                        editingItem.quantity *
+                                        editingItem.unitCost
+                                      ).toFixed(2)}
                                     </td>
                                     <td className="px-2 py-1">
                                       <select
@@ -1967,9 +1956,15 @@ const ProjectDetail = () => {
                                       >
                                         <option value="pending">Pending</option>
                                         <option value="ordered">Ordered</option>
-                                        <option value="received">Received</option>
-                                        <option value="part recvd">Part Recvd</option>
-                                        <option value="installed">Installed</option>
+                                        <option value="received">
+                                          Received
+                                        </option>
+                                        <option value="part recvd">
+                                          Part Recvd
+                                        </option>
+                                        <option value="installed">
+                                          Installed
+                                        </option>
                                       </select>
                                     </td>
                                     <td className="px-2 py-1 text-right space-x-1">
@@ -1989,7 +1984,7 @@ const ProjectDetail = () => {
                                   </tr>
                                 );
                               }
-                              
+
                               return (
                                 <tr
                                   key={item.id}
@@ -2280,18 +2275,8 @@ const ProjectDetail = () => {
                                       className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
                                     />
                                   </td>
-                                  <td className="px-2 py-1">
-                                    <input
-                                      type="text"
-                                      value={editingItem.unit}
-                                      onChange={(e) =>
-                                        setEditingItem({
-                                          ...editingItem,
-                                          unit: e.target.value,
-                                        })
-                                      }
-                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                    />
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {editingItem.unit}
                                   </td>
                                   <td className="px-2 py-1">
                                     <input
@@ -2868,15 +2853,9 @@ const ProjectDetail = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Unit
                 </label>
-                <input
-                  type="text"
-                  value={editingItem.unit}
-                  onChange={(e) =>
-                    setEditingItem({ ...editingItem, unit: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                  placeholder="ea, sf, box"
-                />
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600">
+                  {editingItem.unit || "-"}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
