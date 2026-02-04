@@ -64,16 +64,16 @@ const VendorList = () => {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                    <th className="py-2 pl-3 pr-2 text-left text-xs font-semibold text-gray-900">
                       Name
                     </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-900">
                       Contact Info
                     </th>
-                    <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-900">
                       Website
                     </th>
-                    <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <th className="relative py-2 pl-2 pr-3">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -83,7 +83,7 @@ const VendorList = () => {
                     <tr>
                       <td
                         colSpan={4}
-                        className="py-8 text-center text-sm text-gray-500"
+                        className="py-6 text-center text-xs text-gray-500"
                       >
                         No vendors found. Create your first vendor to get
                         started.
@@ -92,13 +92,13 @@ const VendorList = () => {
                   ) : (
                     vendors.map((vendor) => (
                       <tr key={vendor.id}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                        <td className="py-1 pl-3 pr-2 text-xs font-medium text-gray-900">
                           {vendor.name}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        <td className="px-2 py-1 text-xs text-gray-500">
                           {vendor.contactInfo || "-"}
                         </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        <td className="px-2 py-1 text-xs text-gray-500">
                           {vendor.website ? (
                             <a
                               href={vendor.website}
@@ -112,10 +112,10 @@ const VendorList = () => {
                             "-"
                           )}
                         </td>
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                        <td className="relative py-1 pl-2 pr-3 text-right text-xs font-medium space-x-2">
                           <Link
                             to={`/vendors/${vendor.id}/edit`}
-                            className="text-indigo-600 hover:text-indigo-900 mr-4"
+                            className="text-indigo-600 hover:text-indigo-900"
                           >
                             Edit
                           </Link>
