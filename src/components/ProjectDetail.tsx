@@ -1123,7 +1123,7 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                             Allowance
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Status
                           </th>
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
@@ -1858,7 +1858,7 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                                 Total
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Status
                               </th>
                               <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
@@ -2187,7 +2187,7 @@ const ProjectDetail = () => {
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                               Allowance
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Status
                             </th>
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
