@@ -1405,92 +1405,96 @@ const ProjectDetail = () => {
                                           : null;
 
                                         return (
-                                          <React.Fragment key={`${item.id}-order-${order.id}`}>
+                                          <React.Fragment
+                                            key={`${item.id}-order-${order.id}`}
+                                          >
                                             <tr className="text-xs">
-                                            <td className="px-2 py-1"></td>
-                                            <td
-                                              colSpan={4}
-                                              className="px-2 py-1 text-gray-700 bg-blue-50"
-                                            >
-                                              <span className="font-medium text-gray-600">
-                                                Order #{order.orderNumber} -{" "}
-                                                {new Date(
-                                                  order.orderDate,
-                                                ).toLocaleDateString()}
-                                              </span>
-                                            </td>
-                                            {orderItem ? (
-                                              <>
-                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                  {orderItem.orderedQuantity}
-                                                </td>
-                                                <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                  {item.unit || "-"}
-                                                </td>
-                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                  $
-                                                  {orderItem.orderedPrice.toFixed(
-                                                    2,
-                                                  )}
-                                                </td>
-                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                  ${orderTotal.toFixed(2)}
-                                                </td>
-                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                  {variance !== null && (
-                                                    <span
-                                                      className={
-                                                        variance >= 0
-                                                          ? "text-green-600"
-                                                          : "text-red-600"
-                                                      }
-                                                    >
-                                                      {variance >= 0
-                                                        ? "$"
-                                                        : "-$"}
-                                                      {Math.abs(
-                                                        variance,
-                                                      ).toFixed(2)}
-                                                    </span>
-                                                  )}
-                                                </td>
-                                                <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                </td>
-                                                <td className="px-2 py-1 bg-blue-50"></td>
-                                              </>
-                                            ) : (
-                                              <td colSpan={8}></td>
-                                            )}
-                                          </tr>
-                                          {itemReceipts.map((receipt) => (
-                                            <tr key={`receipt-${receipt.id}`} className="text-xs">
                                               <td className="px-2 py-1"></td>
                                               <td
                                                 colSpan={4}
-                                                className="px-2 py-1 text-gray-700 bg-green-50"
+                                                className="px-2 py-1 text-gray-700 bg-blue-50"
                                               >
                                                 <span className="font-medium text-gray-600">
-                                                  Received -{" "}
+                                                  Order #{order.orderNumber} -{" "}
                                                   {new Date(
-                                                    receipt.receivedDate,
+                                                    order.orderDate,
                                                   ).toLocaleDateString()}
                                                 </span>
                                               </td>
-                                              <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
-                                                {receipt.receivedQuantity}
-                                              </td>
-                                              <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
-                                                {item.unit || "-"}
-                                              </td>
-                                              <td className="px-2 py-1 bg-green-50"></td>
-                                              <td className="px-2 py-1 bg-green-50"></td>
-                                              <td className="px-2 py-1 bg-green-50"></td>
-                                              <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
-                                                {receipt.notes || ""}
-                                              </td>
-                                              <td className="px-2 py-1 bg-green-50"></td>
+                                              {orderItem ? (
+                                                <>
+                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                    {orderItem.orderedQuantity}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
+                                                    {item.unit || "-"}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                    $
+                                                    {orderItem.orderedPrice.toFixed(
+                                                      2,
+                                                    )}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                    ${orderTotal.toFixed(2)}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                    {variance !== null && (
+                                                      <span
+                                                        className={
+                                                          variance >= 0
+                                                            ? "text-green-600"
+                                                            : "text-red-600"
+                                                        }
+                                                      >
+                                                        {variance >= 0
+                                                          ? "$"
+                                                          : "-$"}
+                                                        {Math.abs(
+                                                          variance,
+                                                        ).toFixed(2)}
+                                                      </span>
+                                                    )}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-left text-gray-600 bg-blue-50"></td>
+                                                  <td className="px-2 py-1 bg-blue-50"></td>
+                                                </>
+                                              ) : (
+                                                <td colSpan={8}></td>
+                                              )}
                                             </tr>
-                                          ))}
+                                            {itemReceipts.map((receipt) => (
+                                              <tr
+                                                key={`receipt-${receipt.id}`}
+                                                className="text-xs"
+                                              >
+                                                <td className="px-2 py-1"></td>
+                                                <td
+                                                  colSpan={4}
+                                                  className="px-2 py-1 text-gray-700 bg-green-50"
+                                                >
+                                                  <span className="font-medium text-gray-600">
+                                                    Received -{" "}
+                                                    {new Date(
+                                                      receipt.receivedDate,
+                                                    ).toLocaleDateString()}
+                                                  </span>
+                                                </td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
+                                                  {receipt.receivedQuantity}
+                                                </td>
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                  {item.unit || "-"}
+                                                </td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                  {receipt.notes || ""}
+                                                </td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                              </tr>
+                                            ))}
                                           </React.Fragment>
                                         );
                                       },
@@ -2414,13 +2418,13 @@ const ProjectDetail = () => {
       {/* Add Category Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-md">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
               {editingCategory ? "Edit Category" : "Add New Category"}
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Name
                 </label>
                 <input
@@ -2429,13 +2433,13 @@ const ProjectDetail = () => {
                   onChange={(e) =>
                     setNewCategory({ ...newCategory, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder="e.g., Kitchen, Master Bath"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Description
                 </label>
                 <textarea
@@ -2446,13 +2450,13 @@ const ProjectDetail = () => {
                       description: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   rows={3}
                   placeholder="Optional description"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Allowance
                 </label>
                 <input
@@ -2465,12 +2469,12 @@ const ProjectDetail = () => {
                       allowance: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder="0.00"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => {
                   setShowCategoryModal(false);
@@ -2482,13 +2486,13 @@ const ProjectDetail = () => {
                     allowance: 0,
                   });
                 }}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddCategory}
-                className="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+                className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
               >
                 {editingCategory ? "Update Category" : "Add Category"}
               </button>
