@@ -1153,6 +1153,9 @@ const ProjectDetail = () => {
                                     className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                                   />
                                 </td>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {editingItem.modelNumber || "-"}
+                                </td>
                                 <td className="px-2 py-1">
                                   <input
                                     type="text"
