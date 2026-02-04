@@ -2750,9 +2750,11 @@ const ProjectDetail = () => {
                     // Filter vendors to only show those that carry this product
                     if (editingItem.productId) {
                       const productVendorList = productVendors.filter(
-                        (pv) => pv.productId === editingItem.productId
+                        (pv) => pv.productId === editingItem.productId,
                       );
-                      const vendorIds = productVendorList.map((pv) => pv.vendorId);
+                      const vendorIds = productVendorList.map(
+                        (pv) => pv.vendorId,
+                      );
                       return vendors
                         .filter((v) => vendorIds.includes(v.id))
                         .map((v) => (
@@ -2775,7 +2777,9 @@ const ProjectDetail = () => {
                 </label>
                 <div className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md bg-gray-50 text-gray-600">
                   {editingItem.manufacturerId
-                    ? manufacturers.find((m) => m.id === editingItem.manufacturerId)?.name || "-"
+                    ? manufacturers.find(
+                        (m) => m.id === editingItem.manufacturerId,
+                      )?.name || "-"
                     : "-"}
                 </div>
               </div>
@@ -2785,7 +2789,8 @@ const ProjectDetail = () => {
                 </label>
                 <div className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md bg-gray-50 text-gray-600">
                   {editingItem.productId
-                    ? products.find((p) => p.id === editingItem.productId)?.name || "-"
+                    ? products.find((p) => p.id === editingItem.productId)
+                        ?.name || "-"
                     : "-"}
                 </div>
               </div>
@@ -2857,6 +2862,23 @@ const ProjectDetail = () => {
                 <div className="px-2 py-1 text-xs bg-gray-100 rounded-md font-medium">
                   ${(editingItem.quantity * editingItem.unitCost).toFixed(2)}
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Allowance
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editingItem.allowance || 0}
+                  onChange={(e) =>
+                    setEditingItem({
+                      ...editingItem,
+                      allowance: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-700 mb-1">
