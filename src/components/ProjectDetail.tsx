@@ -1790,7 +1790,8 @@ const ProjectDetail = () => {
           ) : (
             <>
               {/* No Vendor Selected Section - Always First */}
-              {getUnassignedLineItems().length > 0 && (() => {
+              {getUnassignedLineItems().length > 0 &&
+                (() => {
                   const isExpanded = expandedSections.has("unassigned");
                   return (
                     <div className="border-b last:border-b-0">
@@ -1856,9 +1857,139 @@ const ProjectDetail = () => {
                           </thead>
                           <tbody>
                             {getUnassignedLineItems().map((item) => {
+                              const isEditing = editingItemId === item.id;
                               const category = categories.find(
                                 (c) => c.id === item.categoryId,
                               );
+                              
+                              if (isEditing && editingItem) {
+                                return (
+                                  <tr
+                                    key={item.id}
+                                    className="bg-blue-50 border-2 border-indigo-300"
+                                  >
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {category?.name || "-"}
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      <input
+                                        type="text"
+                                        value={editingItem.name}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            name: e.target.value,
+                                          })
+                                        }
+                                        className="w-full px-1 py-0.5 border rounded text-xs"
+                                      />
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      <input
+                                        type="text"
+                                        value={editingItem.material}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            material: e.target.value,
+                                          })
+                                        }
+                                        className="w-full px-1 py-0.5 border rounded text-xs"
+                                      />
+                                    </td>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {editingItem.manufacturerId
+                                        ? manufacturers.find(
+                                            (m) => m.id === editingItem.manufacturerId,
+                                          )?.name
+                                        : "-"}
+                                    </td>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {editingItem.productId
+                                        ? products.find(
+                                            (p) => p.id === editingItem.productId,
+                                          )?.name
+                                        : "-"}
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      <input
+                                        type="number"
+                                        value={editingItem.quantity}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            quantity: parseFloat(e.target.value) || 0,
+                                          })
+                                        }
+                                        className="w-16 px-1 py-0.5 border rounded text-xs text-right"
+                                      />
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      <input
+                                        type="text"
+                                        value={editingItem.unit}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            unit: e.target.value,
+                                          })
+                                        }
+                                        className="w-12 px-1 py-0.5 border rounded text-xs"
+                                      />
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      <input
+                                        type="number"
+                                        value={editingItem.unitCost}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            unitCost: parseFloat(e.target.value) || 0,
+                                          })
+                                        }
+                                        className="w-20 px-1 py-0.5 border rounded text-xs text-right"
+                                        step="0.01"
+                                      />
+                                    </td>
+                                    <td className="px-2 py-1 text-right font-medium">
+                                      ${(editingItem.quantity * editingItem.unitCost).toFixed(2)}
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      <select
+                                        value={editingItem.status || "pending"}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            status: e.target.value as any,
+                                          })
+                                        }
+                                        className="px-1 py-0.5 border rounded text-xs"
+                                      >
+                                        <option value="pending">Pending</option>
+                                        <option value="ordered">Ordered</option>
+                                        <option value="received">Received</option>
+                                        <option value="part recvd">Part Recvd</option>
+                                        <option value="installed">Installed</option>
+                                      </select>
+                                    </td>
+                                    <td className="px-2 py-1 text-right space-x-1">
+                                      <button
+                                        onClick={handleSaveInlineEdit}
+                                        className="text-green-600 hover:text-green-900 font-medium"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        onClick={handleCancelInlineEdit}
+                                        className="text-gray-600 hover:text-gray-900"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              }
+                              
                               return (
                                 <tr
                                   key={item.id}
