@@ -1156,18 +1156,8 @@ const ProjectDetail = () => {
                                 <td className="px-2 py-1 text-gray-600">
                                   {editingItem.modelNumber || "-"}
                                 </td>
-                                <td className="px-2 py-1">
-                                  <input
-                                    type="text"
-                                    value={editingItem.material}
-                                    onChange={(e) =>
-                                      setEditingItem({
-                                        ...editingItem,
-                                        material: e.target.value,
-                                      })
-                                    }
-                                    className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                  />
+                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                  {editingItem.material}
                                 </td>
                                 <td className="px-2 py-1">
                                   <select
@@ -1181,68 +1171,41 @@ const ProjectDetail = () => {
                                     className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                                   >
                                     <option value="">-</option>
-                                    {vendors.map((v) => (
-                                      <option key={v.id} value={v.id}>
-                                        {v.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td className="px-2 py-1">
-                                  <select
-                                    value={editingItem.manufacturerId || ""}
-                                    onChange={(e) =>
-                                      setEditingItem({
-                                        ...editingItem,
-                                        manufacturerId:
-                                          e.target.value || undefined,
-                                      })
-                                    }
-                                    className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                  >
-                                    <option value="">-</option>
-                                    {manufacturers.map((m) => (
-                                      <option key={m.id} value={m.id}>
-                                        {m.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </td>
-                                <td className="px-2 py-1">
-                                  <select
-                                    value={editingItem.productId || ""}
-                                    onChange={(e) => {
-                                      const product = products.find(
-                                        (p) => p.id === e.target.value,
-                                      );
-                                      if (product) {
-                                        setEditingItem({
-                                          ...editingItem,
-                                          productId: product.id,
-                                          manufacturerId:
-                                            product.manufacturerId,
-                                          modelNumber: product.modelNumber,
-                                          name: product.name,
-                                          material:
-                                            product.description ||
-                                            editingItem.material,
-                                        });
-                                      } else {
-                                        setEditingItem({
-                                          ...editingItem,
-                                          productId: undefined,
-                                        });
+                                    {(() => {
+                                      if (editingItem.productId) {
+                                        const productVendorList = productVendors.filter(
+                                          (pv) => pv.productId === editingItem.productId,
+                                        );
+                                        const vendorIds = productVendorList.map((pv) => pv.vendorId);
+                                        return vendors
+                                          .filter((v) => vendorIds.includes(v.id))
+                                          .map((v) => (
+                                            <option key={v.id} value={v.id}>
+                                              {v.name}
+                                            </option>
+                                          ));
                                       }
-                                    }}
-                                    className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                  >
-                                    <option value="">-</option>
-                                    {products.map((p) => (
-                                      <option key={p.id} value={p.id}>
-                                        {p.name}
-                                      </option>
-                                    ))}
+                                      return vendors.map((v) => (
+                                        <option key={v.id} value={v.id}>
+                                          {v.name}
+                                        </option>
+                                      ));
+                                    })()}
                                   </select>
+                                </td>
+                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                  {editingItem.manufacturerId
+                                    ? manufacturers.find(
+                                        (m) => m.id === editingItem.manufacturerId,
+                                      )?.name
+                                    : "-"}
+                                </td>
+                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                  {editingItem.productId
+                                    ? products.find(
+                                        (p) => p.id === editingItem.productId,
+                                      )?.name
+                                    : "-"}
                                 </td>
                                 <td className="px-2 py-1">
                                   <input
@@ -1921,20 +1884,10 @@ const ProjectDetail = () => {
                                     <td className="px-2 py-1 text-gray-600">
                                       {editingItem.modelNumber || "-"}
                                     </td>
-                                    <td className="px-2 py-1">
-                                      <input
-                                        type="text"
-                                        value={editingItem.material}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            material: e.target.value,
-                                          })
-                                        }
-                                        className="w-full px-1 py-0.5 border rounded text-xs"
-                                      />
+                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                      {editingItem.material}
                                     </td>
-                                    <td className="px-2 py-1 text-gray-600">
+                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
                                       {editingItem.manufacturerId
                                         ? manufacturers.find(
                                             (m) =>
@@ -1943,7 +1896,7 @@ const ProjectDetail = () => {
                                           )?.name
                                         : "-"}
                                     </td>
-                                    <td className="px-2 py-1 text-gray-600">
+                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
                                       {editingItem.productId
                                         ? products.find(
                                             (p) =>
@@ -2260,74 +2213,22 @@ const ProjectDetail = () => {
                                   <td className="px-2 py-1 text-gray-600">
                                     {editingItem.modelNumber || "-"}
                                   </td>
-                                  <td className="px-2 py-1">
-                                    <input
-                                      type="text"
-                                      value={editingItem.material}
-                                      onChange={(e) =>
-                                        setEditingItem({
-                                          ...editingItem,
-                                          material: e.target.value,
-                                        })
-                                      }
-                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                    />
+                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                    {editingItem.material}
                                   </td>
-                                  <td className="px-2 py-1">
-                                    <select
-                                      value={editingItem.manufacturerId || ""}
-                                      onChange={(e) =>
-                                        setEditingItem({
-                                          ...editingItem,
-                                          manufacturerId:
-                                            e.target.value || undefined,
-                                        })
-                                      }
-                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                    >
-                                      <option value="">-</option>
-                                      {manufacturers.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                          {m.name}
-                                        </option>
-                                      ))}
-                                    </select>
+                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                    {editingItem.manufacturerId
+                                      ? manufacturers.find(
+                                          (m) => m.id === editingItem.manufacturerId,
+                                        )?.name
+                                      : "-"}
                                   </td>
-                                  <td className="px-2 py-1">
-                                    <select
-                                      value={editingItem.productId || ""}
-                                      onChange={(e) => {
-                                        const product = products.find(
-                                          (p) => p.id === e.target.value,
-                                        );
-                                        if (product) {
-                                          setEditingItem({
-                                            ...editingItem,
-                                            productId: product.id,
-                                            manufacturerId:
-                                              product.manufacturerId,
-                                            modelNumber: product.modelNumber,
-                                            name: product.name,
-                                            material:
-                                              product.description ||
-                                              editingItem.material,
-                                          });
-                                        } else {
-                                          setEditingItem({
-                                            ...editingItem,
-                                            productId: undefined,
-                                          });
-                                        }
-                                      }}
-                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                    >
-                                      <option value="">-</option>
-                                      {products.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                          {p.name}
-                                        </option>
-                                      ))}
-                                    </select>
+                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                    {editingItem.productId
+                                      ? products.find(
+                                          (p) => p.id === editingItem.productId,
+                                        )?.name
+                                      : "-"}
                                   </td>
                                   <td className="px-2 py-1">
                                     <input
