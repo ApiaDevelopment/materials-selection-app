@@ -668,17 +668,15 @@ const ProductList = () => {
 
       {/* Add/Edit Product Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingProduct ? "Edit Product" : "Add New Product"}
-              </h2>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4">
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Manufacturer *
                   </label>
                   <select
@@ -690,7 +688,7 @@ const ProductList = () => {
                         manufacturerId: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Manufacturer...</option>
                     {manufacturers.map((m) => (
@@ -701,7 +699,7 @@ const ProductList = () => {
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Product Name *
                   </label>
                   <input
@@ -711,11 +709,11 @@ const ProductList = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Model Number
                   </label>
                   <input
@@ -724,11 +722,11 @@ const ProductList = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, modelNumber: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Category
                   </label>
                   <input
@@ -737,11 +735,11 @@ const ProductList = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, category: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Unit
                   </label>
                   <select
@@ -749,7 +747,7 @@ const ProductList = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, unit: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="ea.">ea.</option>
                     <option value="lbs">lbs</option>
@@ -758,7 +756,7 @@ const ProductList = () => {
                   </select>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Description
                   </label>
                   <textarea
@@ -767,11 +765,11 @@ const ProductList = () => {
                       setFormData({ ...formData, description: e.target.value })
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Product URL
                   </label>
                   <input
@@ -780,11 +778,11 @@ const ProductList = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, productUrl: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Image URL
                   </label>
                   <input
@@ -793,21 +791,21 @@ const ProductList = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, imageUrl: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                  className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
+                  className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700"
                 >
                   {editingProduct ? "Update Product" : "Create Product"}
                 </button>
