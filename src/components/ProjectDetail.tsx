@@ -104,7 +104,8 @@ const ProjectDetail = () => {
   const [filterVendorId, setFilterVendorId] = useState<string>("");
   const [filterManufacturerId, setFilterManufacturerId] = useState<string>("");
   const [filterCategory, setFilterCategory] = useState<string>("");
-  const [selectedCategoryForInsert, setSelectedCategoryForInsert] = useState<string>("");
+  const [selectedCategoryForInsert, setSelectedCategoryForInsert] =
+    useState<string>("");
   const [insertQuantity, setInsertQuantity] = useState<number>(1);
   const [insertUnitCost, setInsertUnitCost] = useState<number>(0);
 
@@ -381,7 +382,9 @@ const ProjectDetail = () => {
 
     try {
       // Get primary vendor for this product
-      const primaryVendor = await productVendorService.getPrimaryVendor(product.id);
+      const primaryVendor = await productVendorService.getPrimaryVendor(
+        product.id,
+      );
 
       const newLineItem: CreateLineItemRequest = {
         categoryId: selectedCategoryForInsert,
@@ -390,7 +393,8 @@ const ProjectDetail = () => {
         material: product.description || "",
         quantity: insertQuantity,
         unit: product.unit || "ea",
-        unitCost: insertUnitCost > 0 ? insertUnitCost : (primaryVendor?.cost || 0),
+        unitCost:
+          insertUnitCost > 0 ? insertUnitCost : primaryVendor?.cost || 0,
         notes: product.modelNumber ? `Model: ${product.modelNumber}` : "",
         productId: product.id,
         manufacturerId: product.manufacturerId,
@@ -1785,6 +1789,164 @@ const ProjectDetail = () => {
             <p className="text-gray-500 text-center py-8">No line items yet.</p>
           ) : (
             <>
+              {/* No Vendor Selected Section - Always First */}
+              {getUnassignedLineItems().length > 0 &&
+                (() => {
+                  const isExpanded = expandedSections.has("unassigned");
+                  return (
+                    <div className="border-b last:border-b-0">
+                      <div className="bg-yellow-50 px-4 py-2 flex items-center justify-between border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => toggleSection("unassigned")}
+                            className="text-gray-600 hover:text-gray-900"
+                          >
+                            {isExpanded ? "▼" : "▶"}
+                          </button>
+                          <h3 className="text-sm font-semibold text-gray-700">
+                            No Vendor Selected
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-gray-600">
+                            Total: $
+                            {getUnassignedLineItems()
+                              .reduce((sum, item) => sum + item.totalCost, 0)
+                              .toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-gray-100 border-b border-gray-200">
+                            <tr>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Category
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Item
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Material
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Mfr
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Product
+                              </th>
+                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                                Qty
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Unit
+                              </th>
+                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                                Unit Cost
+                              </th>
+                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                                Total
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Status
+                              </th>
+                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {getUnassignedLineItems().map((item) => {
+                              const category = categories.find(
+                                (c) => c.id === item.categoryId,
+                              );
+                              return (
+                                <tr
+                                  key={item.id}
+                                  className="border-b border-gray-100 hover:bg-gray-50"
+                                >
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {category?.name || "-"}
+                                  </td>
+                                  <td className="px-2 py-1">{item.name}</td>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.material}
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.manufacturerId
+                                      ? manufacturers.find(
+                                          (m) => m.id === item.manufacturerId,
+                                        )?.name
+                                      : "-"}
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.productId
+                                      ? products.find(
+                                          (p) => p.id === item.productId,
+                                        )?.name
+                                      : "-"}
+                                  </td>
+                                  <td className="px-2 py-1 text-right">
+                                    {item.quantity}
+                                  </td>
+                                  <td className="px-2 py-1">{item.unit}</td>
+                                  <td className="px-2 py-1 text-right">
+                                    ${item.unitCost.toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-1 text-right font-medium">
+                                    ${item.totalCost.toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-1">
+                                    <span
+                                      className={`px-1 py-0.5 rounded text-xs ${
+                                        item.status === "installed"
+                                          ? "bg-green-100 text-green-700"
+                                          : item.status === "ordered"
+                                            ? "bg-blue-100 text-blue-700"
+                                            : item.status === "received"
+                                              ? "bg-purple-100 text-purple-700"
+                                              : "bg-gray-100 text-gray-700"
+                                      }`}
+                                    >
+                                      {item.status || "pending"}
+                                    </span>
+                                    <button
+                                      onClick={() =>
+                                        handleStartInlineEdit(item)
+                                      }
+                                      className="ml-1 text-indigo-600 hover:text-indigo-900"
+                                      title="Edit inline"
+                                    >
+                                      ✏️
+                                    </button>
+                                  </td>
+                                  <td className="px-2 py-1 text-right space-x-1">
+                                    <button
+                                      onClick={() => handleStartModalEdit(item)}
+                                      className="text-indigo-600 hover:text-indigo-900"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteLineItem(item.id)
+                                      }
+                                      className="text-red-600 hover:text-red-900"
+                                    >
+                                      Del
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  );
+                })}
+
+              {/* Vendors with Line Items */}
               {getActiveVendors().map((vendor) => {
                 const isExpanded = expandedSections.has(vendor.id);
                 return (
@@ -2334,161 +2496,6 @@ const ProjectDetail = () => {
                   </div>
                 );
               })}
-              {getUnassignedLineItems().length > 0 &&
-                (() => {
-                  const isExpanded = expandedSections.has("unassigned");
-                  return (
-                    <div className="border-b last:border-b-0">
-                      <div className="bg-yellow-50 px-4 py-2 flex items-center justify-between border-b border-gray-200">
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => toggleSection("unassigned")}
-                            className="text-gray-600 hover:text-gray-900"
-                          >
-                            {isExpanded ? "▼" : "▶"}
-                          </button>
-                          <h3 className="text-sm font-semibold text-gray-700">
-                            Unassigned Vendor
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-600">
-                            Total: $
-                            {getUnassignedLineItems()
-                              .reduce((sum, item) => sum + item.totalCost, 0)
-                              .toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                      {isExpanded && (
-                        <table className="min-w-full text-xs">
-                          <thead className="bg-gray-100 border-b border-gray-200">
-                            <tr>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Category
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Item
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Material
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Mfr
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Product
-                              </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
-                                Qty
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Unit
-                              </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
-                                Unit Cost
-                              </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
-                                Total
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Status
-                              </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {getUnassignedLineItems().map((item) => {
-                              const category = categories.find(
-                                (c) => c.id === item.categoryId,
-                              );
-                              return (
-                                <tr
-                                  key={item.id}
-                                  className="border-b border-gray-100 hover:bg-gray-50"
-                                >
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {category?.name || "-"}
-                                  </td>
-                                  <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {item.material}
-                                  </td>
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {item.manufacturerId
-                                      ? manufacturers.find(
-                                          (m) => m.id === item.manufacturerId,
-                                        )?.name
-                                      : "-"}
-                                  </td>
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {item.productId
-                                      ? products.find(
-                                          (p) => p.id === item.productId,
-                                        )?.name
-                                      : "-"}
-                                  </td>
-                                  <td className="px-2 py-1 text-right">
-                                    {item.quantity}
-                                  </td>
-                                  <td className="px-2 py-1">{item.unit}</td>
-                                  <td className="px-2 py-1 text-right">
-                                    ${item.unitCost.toFixed(2)}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-medium">
-                                    ${item.totalCost.toFixed(2)}
-                                  </td>
-                                  <td className="px-2 py-1">
-                                    <span
-                                      className={`px-1 py-0.5 rounded text-xs ${
-                                        item.status === "installed"
-                                          ? "bg-green-100 text-green-700"
-                                          : item.status === "ordered"
-                                            ? "bg-blue-100 text-blue-700"
-                                            : item.status === "received"
-                                              ? "bg-purple-100 text-purple-700"
-                                              : "bg-gray-100 text-gray-700"
-                                      }`}
-                                    >
-                                      {item.status || "pending"}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        handleStartInlineEdit(item)
-                                      }
-                                      className="ml-1 text-indigo-600 hover:text-indigo-900"
-                                      title="Edit inline"
-                                    >
-                                      ✏️
-                                    </button>
-                                  </td>
-                                  <td className="px-2 py-1 text-right space-x-1">
-                                    <button
-                                      onClick={() => handleStartModalEdit(item)}
-                                      className="text-indigo-600 hover:text-indigo-900"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteLineItem(item.id)
-                                      }
-                                      className="text-red-600 hover:text-red-900"
-                                    >
-                                      Del
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  );
-                })}
             </>
           )}
         </div>
@@ -3071,7 +3078,9 @@ const ProjectDetail = () => {
                   </label>
                   <select
                     value={selectedCategoryForInsert}
-                    onChange={(e) => setSelectedCategoryForInsert(e.target.value)}
+                    onChange={(e) =>
+                      setSelectedCategoryForInsert(e.target.value)
+                    }
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
                     {categories.map((c) => (
@@ -3152,14 +3161,14 @@ const ProjectDetail = () => {
                           (p) =>
                             p.name.toLowerCase().includes(search) ||
                             p.description?.toLowerCase().includes(search) ||
-                            p.modelNumber?.toLowerCase().includes(search)
+                            p.modelNumber?.toLowerCase().includes(search),
                         );
                       }
 
                       // Manufacturer filter
                       if (filterManufacturerId) {
                         filtered = filtered.filter(
-                          (p) => p.manufacturerId === filterManufacturerId
+                          (p) => p.manufacturerId === filterManufacturerId,
                         );
                       }
 
@@ -3167,7 +3176,7 @@ const ProjectDetail = () => {
                       if (filterCategory) {
                         const catSearch = filterCategory.toLowerCase();
                         filtered = filtered.filter((p) =>
-                          p.category?.toLowerCase().includes(catSearch)
+                          p.category?.toLowerCase().includes(catSearch),
                         );
                       }
 
@@ -3177,7 +3186,7 @@ const ProjectDetail = () => {
                           .filter((pv) => pv.vendorId === filterVendorId)
                           .map((pv) => pv.productId);
                         filtered = filtered.filter((p) =>
-                          productIdsForVendor.includes(p.id)
+                          productIdsForVendor.includes(p.id),
                         );
 
                         // If manufacturer filter is also set, ensure vendor has that manufacturer
@@ -3195,24 +3204,28 @@ const ProjectDetail = () => {
                           .filter((pv) => pv.vendorId === filterVendorId)
                           .map((pv) => pv.productId);
                         filtered = filtered.filter((p) =>
-                          validProductIds.includes(p.id)
+                          validProductIds.includes(p.id),
                         );
                       }
 
                       return filtered.length > 0 ? (
                         filtered.map((product) => {
                           const manufacturer = manufacturers.find(
-                            (m) => m.id === product.manufacturerId
+                            (m) => m.id === product.manufacturerId,
                           );
                           const productVendorList = productVendors.filter(
-                            (pv) => pv.productId === product.id
+                            (pv) => pv.productId === product.id,
                           );
-                          const primaryPV = productVendorList.find((pv) => pv.isPrimary) || productVendorList[0];
+                          const primaryPV =
+                            productVendorList.find((pv) => pv.isPrimary) ||
+                            productVendorList[0];
 
                           return (
                             <tr key={product.id} className="hover:bg-gray-50">
                               <td className="px-3 py-2 text-xs text-gray-900">
-                                <div className="font-medium">{product.name}</div>
+                                <div className="font-medium">
+                                  {product.name}
+                                </div>
                                 {product.description && (
                                   <div className="text-gray-500 truncate max-w-xs">
                                     {product.description}
@@ -3232,12 +3245,19 @@ const ProjectDetail = () => {
                                 {productVendorList.length > 0 ? (
                                   <div className="space-y-0.5">
                                     {productVendorList.map((pv) => {
-                                      const vendor = vendors.find((v) => v.id === pv.vendorId);
+                                      const vendor = vendors.find(
+                                        (v) => v.id === pv.vendorId,
+                                      );
                                       return (
-                                        <div key={pv.id} className="flex items-center gap-1">
+                                        <div
+                                          key={pv.id}
+                                          className="flex items-center gap-1"
+                                        >
                                           {vendor?.name}
                                           {pv.isPrimary && (
-                                            <span className="text-yellow-600">★</span>
+                                            <span className="text-yellow-600">
+                                              ★
+                                            </span>
                                           )}
                                         </div>
                                       );
@@ -3248,7 +3268,9 @@ const ProjectDetail = () => {
                                 )}
                               </td>
                               <td className="px-3 py-2 text-xs text-gray-600">
-                                {primaryPV ? `$${primaryPV.cost.toFixed(2)}` : "-"}
+                                {primaryPV
+                                  ? `$${primaryPV.cost.toFixed(2)}`
+                                  : "-"}
                               </td>
                               <td className="px-3 py-2 text-xs">
                                 <button
