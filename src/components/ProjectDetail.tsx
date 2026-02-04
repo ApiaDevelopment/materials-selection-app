@@ -1090,43 +1090,43 @@ const ProjectDetail = () => {
                     <table className="min-w-full text-xs">
                       <thead className="bg-gray-100 border-b border-gray-200">
                         <tr>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Item
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                             Model
                           </th>
                           <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                             Material
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-28">
                             Vendor
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                             Mfr
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Product
                           </th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-600">
+                          <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                             Qty
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
                             Unit
                           </th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-600">
+                          <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                             Unit Cost
                           </th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-600">
+                          <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                             Total
                           </th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-600">
+                          <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                             Allowance
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                             Status
                           </th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-600">
+                          <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                             Actions
                           </th>
                         </tr>
@@ -1840,37 +1840,37 @@ const ProjectDetail = () => {
                         <table className="min-w-full text-xs">
                           <thead className="bg-gray-100 border-b border-gray-200">
                             <tr>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Item
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                                 Model
                               </th>
                               <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                                 Material
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                                 Mfr
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Product
                               </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                              <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                                 Qty
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
                                 Unit
                               </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                              <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                                 Unit Cost
                               </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                              <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                                 Total
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                                 Status
                               </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600">
+                              <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                                 Actions
                               </th>
                             </tr>
@@ -2179,40 +2179,40 @@ const ProjectDetail = () => {
                       <table className="min-w-full text-xs">
                         <thead className="bg-gray-100 border-b border-gray-200">
                           <tr>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Item
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                               Model
                             </th>
                             <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                               Material
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                               Mfr
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Product
                             </th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600">
+                            <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                               Qty
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
                               Unit
                             </th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600">
+                            <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                               Unit Cost
                             </th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600">
+                            <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                               Total
                             </th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600">
+                            <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                               Allowance
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                               Status
                             </th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600">
+                            <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                               Actions
                             </th>
                           </tr>
