@@ -192,15 +192,15 @@ const ProjectList = () => {
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-lg font-bold text-gray-900">Projects</h1>
+          <p className="mt-1 text-xs text-gray-600">
             Manage your construction and renovation projects
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
           >
             + Create Project
           </button>
@@ -208,13 +208,13 @@ const ProjectList = () => {
       </div>
 
       {/* Search */}
-      <div className="mb-4">
+      <div className="mb-3">
         <input
           type="text"
           placeholder="Search projects by name, description, or customer..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
       </div>
 
