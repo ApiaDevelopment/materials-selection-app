@@ -6,6 +6,7 @@ import {
     manufacturerService,
     orderService,
     productService,
+    productVendorService,
     projectService,
     vendorService,
 } from "../services";
@@ -18,6 +19,7 @@ import type {
     Order,
     OrderItem,
     Product,
+    ProductVendor,
     Project,
     Receipt,
     Vendor,
@@ -96,6 +98,15 @@ const ProjectDetail = () => {
     notes: "",
     status: "pending",
   });
+  const [showInsertProductModal, setShowInsertProductModal] = useState(false);
+  const [productVendors, setProductVendors] = useState<ProductVendor[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterVendorId, setFilterVendorId] = useState<string>("");
+  const [filterManufacturerId, setFilterManufacturerId] = useState<string>("");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [selectedCategoryForInsert, setSelectedCategoryForInsert] = useState<string>("");
+  const [insertQuantity, setInsertQuantity] = useState<number>(1);
+  const [insertUnitCost, setInsertUnitCost] = useState<number>(0);
 
   useEffect(() => {
     if (id) {
@@ -125,6 +136,14 @@ const ProjectDetail = () => {
         orderService.getByProjectId(projectId),
         orderService.getOrderItemsByProject(projectId),
       ]);
+
+      // Load all product vendors
+      const allProductVendors: ProductVendor[] = [];
+      for (const product of productsData) {
+        const pvs = await productVendorService.getAllByProduct(product.id);
+        allProductVendors.push(...pvs);
+      }
+      setProductVendors(allProductVendors);
       setProject(projectData);
       setCategories(categoriesData);
       setLineItems(lineItemsData);
@@ -347,6 +366,51 @@ const ProjectDetail = () => {
         vendorId: primaryVendor?.vendorId || undefined,
         unitCost: primaryVendor?.cost || 0,
       });
+    }
+  };
+
+  const handleInsertProduct = async (product: Product) => {
+    if (!selectedCategoryForInsert) {
+      alert("Please select a category");
+      return;
+    }
+    if (insertQuantity <= 0) {
+      alert("Please enter a valid quantity");
+      return;
+    }
+
+    try {
+      // Get primary vendor for this product
+      const primaryVendor = await productVendorService.getPrimaryVendor(product.id);
+
+      const newLineItem: CreateLineItemRequest = {
+        categoryId: selectedCategoryForInsert,
+        projectId: id!,
+        name: product.name,
+        material: product.description || "",
+        quantity: insertQuantity,
+        unit: product.unit || "ea",
+        unitCost: insertUnitCost > 0 ? insertUnitCost : (primaryVendor?.cost || 0),
+        notes: product.modelNumber ? `Model: ${product.modelNumber}` : "",
+        productId: product.id,
+        manufacturerId: product.manufacturerId,
+        vendorId: primaryVendor?.vendorId,
+        modelNumber: product.modelNumber,
+        status: "pending",
+      };
+
+      const created = await lineItemService.create(newLineItem);
+      setLineItems([...lineItems, created]);
+      setShowInsertProductModal(false);
+      setSearchTerm("");
+      setFilterVendorId("");
+      setFilterManufacturerId("");
+      setFilterCategory("");
+      setInsertQuantity(1);
+      setInsertUnitCost(0);
+    } catch (err) {
+      alert("Failed to insert product");
+      console.error("Error inserting product:", err);
     }
   };
 
@@ -826,6 +890,21 @@ const ProjectDetail = () => {
               className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
             >
               ➕ Category
+            </button>
+            <button
+              onClick={() => {
+                setShowInsertProductModal(true);
+                setFilterVendorId("");
+                setFilterManufacturerId("");
+                setFilterCategory("");
+                setSearchTerm("");
+                setSelectedCategoryForInsert(categories[0]?.id || "");
+                setInsertQuantity(1);
+                setInsertUnitCost(0);
+              }}
+              className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+            >
+              📦 Insert Product
             </button>
           </div>
         </div>
@@ -2907,6 +2986,310 @@ const ProjectDetail = () => {
                 className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Insert Product Modal */}
+      {showInsertProductModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Insert Product into Project
+            </h3>
+
+            {/* Filter Section */}
+            <div className="bg-gray-50 p-3 rounded mb-4 space-y-3">
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Search
+                  </label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search products..."
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Vendor
+                  </label>
+                  <select
+                    value={filterVendorId}
+                    onChange={(e) => setFilterVendorId(e.target.value)}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">All Vendors</option>
+                    {vendors.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Manufacturer
+                  </label>
+                  <select
+                    value={filterManufacturerId}
+                    onChange={(e) => setFilterManufacturerId(e.target.value)}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">All Manufacturers</option>
+                    {manufacturers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Product Category
+                  </label>
+                  <input
+                    type="text"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    placeholder="Filter by category..."
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Insert into Category & Quantity */}
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-300">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Insert into Category *
+                  </label>
+                  <select
+                    value={selectedCategoryForInsert}
+                    onChange={(e) => setSelectedCategoryForInsert(e.target.value)}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    value={insertQuantity}
+                    onChange={(e) => setInsertQuantity(Number(e.target.value))}
+                    min="1"
+                    step="1"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Unit Cost (optional)
+                  </label>
+                  <input
+                    type="number"
+                    value={insertUnitCost}
+                    onChange={(e) => setInsertUnitCost(Number(e.target.value))}
+                    min="0"
+                    step="0.01"
+                    placeholder="Uses vendor cost if empty"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Products Table */}
+            <div className="border rounded-md overflow-hidden">
+              <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Product
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Model
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Manufacturer
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Category
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Vendor(s)
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Cost
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {(() => {
+                      // Filter products based on all criteria
+                      let filtered = products;
+
+                      // Search term filter
+                      if (searchTerm) {
+                        const search = searchTerm.toLowerCase();
+                        filtered = filtered.filter(
+                          (p) =>
+                            p.name.toLowerCase().includes(search) ||
+                            p.description?.toLowerCase().includes(search) ||
+                            p.modelNumber?.toLowerCase().includes(search)
+                        );
+                      }
+
+                      // Manufacturer filter
+                      if (filterManufacturerId) {
+                        filtered = filtered.filter(
+                          (p) => p.manufacturerId === filterManufacturerId
+                        );
+                      }
+
+                      // Category filter
+                      if (filterCategory) {
+                        const catSearch = filterCategory.toLowerCase();
+                        filtered = filtered.filter((p) =>
+                          p.category?.toLowerCase().includes(catSearch)
+                        );
+                      }
+
+                      // Vendor filter - only show products that have this vendor
+                      if (filterVendorId) {
+                        const productIdsForVendor = productVendors
+                          .filter((pv) => pv.vendorId === filterVendorId)
+                          .map((pv) => pv.productId);
+                        filtered = filtered.filter((p) =>
+                          productIdsForVendor.includes(p.id)
+                        );
+
+                        // If manufacturer filter is also set, ensure vendor has that manufacturer
+                        if (filterManufacturerId) {
+                          // This is already handled by the manufacturer filter above
+                          // The combination naturally gives us products from that manufacturer
+                          // that are sold by that vendor
+                        }
+                      }
+
+                      // If manufacturer filter is set and vendor filter is set,
+                      // ensure the vendor sells products from that manufacturer
+                      if (filterManufacturerId && filterVendorId) {
+                        const validProductIds = productVendors
+                          .filter((pv) => pv.vendorId === filterVendorId)
+                          .map((pv) => pv.productId);
+                        filtered = filtered.filter((p) =>
+                          validProductIds.includes(p.id)
+                        );
+                      }
+
+                      return filtered.length > 0 ? (
+                        filtered.map((product) => {
+                          const manufacturer = manufacturers.find(
+                            (m) => m.id === product.manufacturerId
+                          );
+                          const productVendorList = productVendors.filter(
+                            (pv) => pv.productId === product.id
+                          );
+                          const primaryPV = productVendorList.find((pv) => pv.isPrimary) || productVendorList[0];
+
+                          return (
+                            <tr key={product.id} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-xs text-gray-900">
+                                <div className="font-medium">{product.name}</div>
+                                {product.description && (
+                                  <div className="text-gray-500 truncate max-w-xs">
+                                    {product.description}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-gray-600">
+                                {product.modelNumber || "-"}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-gray-600">
+                                {manufacturer?.name || "-"}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-gray-600">
+                                {product.category || "-"}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-gray-600">
+                                {productVendorList.length > 0 ? (
+                                  <div className="space-y-0.5">
+                                    {productVendorList.map((pv) => {
+                                      const vendor = vendors.find((v) => v.id === pv.vendorId);
+                                      return (
+                                        <div key={pv.id} className="flex items-center gap-1">
+                                          {vendor?.name}
+                                          {pv.isPrimary && (
+                                            <span className="text-yellow-600">★</span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-gray-600">
+                                {primaryPV ? `$${primaryPV.cost.toFixed(2)}` : "-"}
+                              </td>
+                              <td className="px-3 py-2 text-xs">
+                                <button
+                                  onClick={() => handleInsertProduct(product)}
+                                  className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                                >
+                                  Insert
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-3 py-8 text-center text-xs text-gray-500"
+                          >
+                            No products found matching your filters
+                          </td>
+                        </tr>
+                      );
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
+              <button
+                onClick={() => {
+                  setShowInsertProductModal(false);
+                  setSearchTerm("");
+                  setFilterVendorId("");
+                  setFilterManufacturerId("");
+                  setFilterCategory("");
+                }}
+                className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
+              >
+                Close
               </button>
             </div>
           </div>
