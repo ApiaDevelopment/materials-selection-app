@@ -1841,9 +1841,6 @@ const ProjectDetail = () => {
                           <thead className="bg-gray-100 border-b border-gray-200">
                             <tr>
                               <th className="px-2 py-1 text-left font-medium text-gray-600">
-                                Category
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600">
                                 Item
                               </th>
                               <th className="px-2 py-1 text-left font-medium text-gray-600">
@@ -2023,9 +2020,6 @@ const ProjectDetail = () => {
                                   key={item.id}
                                   className="border-b border-gray-100 hover:bg-gray-50"
                                 >
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {category?.name || "-"}
-                                  </td>
                                   <td className="px-2 py-1">{item.name}</td>
                                   <td className="px-2 py-1 text-gray-600">
                                     {item.modelNumber || "-"}
@@ -2185,9 +2179,6 @@ const ProjectDetail = () => {
                       <table className="min-w-full text-xs">
                         <thead className="bg-gray-100 border-b border-gray-200">
                           <tr>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600">
-                              Category
-                            </th>
                             <th className="px-2 py-1 text-left font-medium text-gray-600">
                               Item
                             </th>
@@ -2419,9 +2410,6 @@ const ProjectDetail = () => {
                                   key={item.id}
                                   className="border-b border-gray-100 hover:bg-gray-50"
                                 >
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {category?.name || "-"}
-                                  </td>
                                   <td className="px-2 py-1">{item.name}</td>
                                   <td className="px-2 py-1 text-gray-600">
                                     {item.modelNumber || "-"}
