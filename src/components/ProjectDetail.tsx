@@ -753,7 +753,7 @@ const ProjectDetail = () => {
         <div className="flex items-center justify-between gap-6">
           <div className="flex-shrink-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-lg font-bold text-gray-900">
                 {project.name}
               </h1>
               {project.status && (
@@ -777,7 +777,7 @@ const ProjectDetail = () => {
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+            <p className="text-xs text-gray-600 mt-1">{project.description}</p>
           </div>
           <div className="flex-1 min-w-0 px-6">
             <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-xs text-gray-600">
@@ -817,13 +817,13 @@ const ProjectDetail = () => {
                 setShowProjectModal(true);
                 setEditingProject(project);
               }}
-              className="text-indigo-600 hover:text-indigo-900 text-sm"
+              className="text-indigo-600 hover:text-indigo-900 text-xs"
             >
               ✏️ Edit
             </button>
             <button
               onClick={() => setShowCategoryModal(true)}
-              className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
+              className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
             >
               ➕ Category
             </button>
@@ -836,7 +836,7 @@ const ProjectDetail = () => {
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode("category")}
-            className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
               viewMode === "category"
                 ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
@@ -846,7 +846,7 @@ const ProjectDetail = () => {
           </button>
           <button
             onClick={() => setViewMode("vendor")}
-            className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
               viewMode === "vendor"
                 ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
