@@ -1126,8 +1126,7 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Status
                           </th>
-                          <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100">
-                          </th>
+                          <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1411,7 +1410,7 @@ const ProjectDetail = () => {
                                           : item.id,
                                       )
                                     }
-                                    className="text-gray-600 hover:text-gray-900"
+                                    className="text-lg font-bold text-gray-700 hover:text-gray-900"
                                   >
                                     ⋮
                                   </button>
@@ -1860,8 +1859,7 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Status
                               </th>
-                              <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100">
-                              </th>
+                              <th className="px-2 py-1 text-center font-medium text-gray-600 w-10 bg-gray-100"></th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2063,7 +2061,7 @@ const ProjectDetail = () => {
                                             : item.id,
                                         )
                                       }
-                                      className="text-gray-600 hover:text-gray-900"
+                                      className="text-lg font-bold text-gray-700 hover:text-gray-900"
                                     >
                                       ⋮
                                     </button>
@@ -2188,8 +2186,7 @@ const ProjectDetail = () => {
                             <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Status
                             </th>
-                            <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100">
-                            </th>
+                            <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100"></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2431,7 +2428,7 @@ const ProjectDetail = () => {
                                             : item.id,
                                         )
                                       }
-                                      className="text-gray-600 hover:text-gray-900"
+                                      className="text-lg font-bold text-gray-700 hover:text-gray-900"
                                     >
                                       ⋮
                                     </button>
