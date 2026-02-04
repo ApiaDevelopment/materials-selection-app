@@ -2727,14 +2727,9 @@ const ProjectDetail = () => {
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Material
                 </label>
-                <input
-                  type="text"
-                  value={editingItem.material}
-                  onChange={(e) =>
-                    setEditingItem({ ...editingItem, material: e.target.value })
-                  }
-                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md bg-gray-50 text-gray-600">
+                  {editingItem.material || "-"}
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -2751,67 +2746,48 @@ const ProjectDetail = () => {
                   className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">None</option>
-                  {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
+                  {(() => {
+                    // Filter vendors to only show those that carry this product
+                    if (editingItem.productId) {
+                      const productVendorList = productVendors.filter(
+                        (pv) => pv.productId === editingItem.productId
+                      );
+                      const vendorIds = productVendorList.map((pv) => pv.vendorId);
+                      return vendors
+                        .filter((v) => vendorIds.includes(v.id))
+                        .map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name}
+                          </option>
+                        ));
+                    }
+                    return vendors.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ));
+                  })()}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Manufacturer
                 </label>
-                <select
-                  value={editingItem.manufacturerId || ""}
-                  onChange={(e) =>
-                    setEditingItem({
-                      ...editingItem,
-                      manufacturerId: e.target.value || undefined,
-                    })
-                  }
-                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">None</option>
-                  {manufacturers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md bg-gray-50 text-gray-600">
+                  {editingItem.manufacturerId
+                    ? manufacturers.find((m) => m.id === editingItem.manufacturerId)?.name || "-"
+                    : "-"}
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Product
                 </label>
-                <select
-                  value={editingItem.productId || ""}
-                  onChange={(e) => {
-                    const product = products.find(
-                      (p) => p.id === e.target.value,
-                    );
-                    if (product) {
-                      setEditingItem({
-                        ...editingItem,
-                        productId: product.id,
-                        manufacturerId: product.manufacturerId,
-                        modelNumber: product.modelNumber,
-                        name: product.name,
-                        material: product.description || editingItem.material,
-                      });
-                    } else {
-                      setEditingItem({ ...editingItem, productId: undefined });
-                    }
-                  }}
-                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">None</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md bg-gray-50 text-gray-600">
+                  {editingItem.productId
+                    ? products.find((p) => p.id === editingItem.productId)?.name || "-"
+                    : "-"}
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
