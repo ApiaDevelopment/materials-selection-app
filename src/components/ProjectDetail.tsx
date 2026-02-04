@@ -618,17 +618,23 @@ const ProjectDetail = () => {
       setReceipts([...receipts, ...newReceipts]);
 
       const updatedLineItems = [...lineItems];
+      const statusUpdates = [];
       for (const [orderItemId, data] of Object.entries(receiveForm.items)) {
         if (data.qty && parseFloat(data.qty) > 0) {
           const orderItem = orderItems.find(oi => oi.id === orderItemId);
           if (orderItem) {
             const lineItem = updatedLineItems.find(li => li.id === orderItem.lineItemId);
             if (lineItem) {
-              lineItem.status = data.isPartial ? "part recvd" : "received";
+              const newStatus = data.isPartial ? "part recvd" : "received";
+              lineItem.status = newStatus;
+              statusUpdates.push(
+                lineItemService.update(lineItem.id, { status: newStatus })
+              );
             }
           }
         }
       }
+      await Promise.all(statusUpdates);
       setLineItems(updatedLineItems);
 
       setShowReceiveModal(false);
