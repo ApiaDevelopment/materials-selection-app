@@ -63,7 +63,10 @@ const VendorList = () => {
     e.preventDefault();
     try {
       if (editingVendor) {
-        const updated = await vendorService.updateVendor(editingVendor.id, formData);
+        const updated = await vendorService.updateVendor(
+          editingVendor.id,
+          formData,
+        );
         setVendors(vendors.map((v) => (v.id === updated.id ? updated : v)));
       } else {
         const created = await vendorService.createVendor(formData);
