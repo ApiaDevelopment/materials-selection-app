@@ -778,7 +778,8 @@ const ProjectDetail = () => {
               )}
               {project.estimatedStartDate && (
                 <span className="text-xs text-gray-500 ml-2">
-                  Est. Start: {new Date(project.estimatedStartDate).toLocaleDateString()}
+                  Est. Start:{" "}
+                  {new Date(project.estimatedStartDate).toLocaleDateString()}
                 </span>
               )}
             </div>
@@ -792,6 +793,12 @@ const ProjectDetail = () => {
                   {project.customerName}
                 </div>
               )}
+              {project.address && (
+                <div className="truncate">
+                  <span className="font-medium">Address:</span>{" "}
+                  {project.address}
+                </div>
+              )}
               {project.phone && (
                 <div className="truncate">
                   <span className="font-medium">Phone:</span> {project.phone}
@@ -800,12 +807,6 @@ const ProjectDetail = () => {
               {project.email && (
                 <div className="truncate">
                   <span className="font-medium">Email:</span> {project.email}
-                </div>
-              )}
-              {project.address && (
-                <div className="truncate col-span-2">
-                  <span className="font-medium">Address:</span>{" "}
-                  {project.address}
                 </div>
               )}
             </div>
