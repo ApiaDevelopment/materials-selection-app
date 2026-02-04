@@ -1093,6 +1093,9 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-left font-medium text-gray-600">
                             Item
                           </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-600">
+                            Model
+                          </th>
                           <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                             Material
                           </th>
@@ -1332,7 +1335,13 @@ const ProjectDetail = () => {
                                 className="border-b border-gray-100 hover:bg-gray-50"
                               >
                                 <td className="px-2 py-1">{item.name}</td>
-                                <td className="px-2 py-1 text-gray-600 truncate max-w-[6rem]" title={item.material}>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {item.modelNumber || "-"}
+                                </td>
+                                <td
+                                  className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
+                                  title={item.material}
+                                >
                                   {item.material}
                                 </td>
                                 <td className="px-2 py-1 text-gray-600">
@@ -1422,7 +1431,13 @@ const ProjectDetail = () => {
                                 </td>
                                 <td className="px-2 py-1 text-right relative">
                                   <button
-                                    onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                    onClick={() =>
+                                      setOpenActionMenu(
+                                        openActionMenu === item.id
+                                          ? null
+                                          : item.id,
+                                      )
+                                    }
                                     className="text-gray-600 hover:text-gray-900"
                                   >
                                     ⋮
@@ -1831,6 +1846,9 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-left font-medium text-gray-600">
                                 Item
                               </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600">
+                                Model
+                              </th>
                               <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                                 Material
                               </th>
@@ -2009,7 +2027,13 @@ const ProjectDetail = () => {
                                     {category?.name || "-"}
                                   </td>
                                   <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600 truncate max-w-[6rem]" title={item.material}>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.modelNumber || "-"}
+                                  </td>
+                                  <td
+                                    className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
+                                    title={item.material}
+                                  >
                                     {item.material}
                                   </td>
                                   <td className="px-2 py-1 text-gray-600">
@@ -2062,7 +2086,13 @@ const ProjectDetail = () => {
                                   </td>
                                   <td className="px-2 py-1 text-right relative">
                                     <button
-                                      onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                      onClick={() =>
+                                        setOpenActionMenu(
+                                          openActionMenu === item.id
+                                            ? null
+                                            : item.id,
+                                        )
+                                      }
                                       className="text-gray-600 hover:text-gray-900"
                                     >
                                       ⋮
@@ -2160,6 +2190,9 @@ const ProjectDetail = () => {
                             </th>
                             <th className="px-2 py-1 text-left font-medium text-gray-600">
                               Item
+                            </th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600">
+                              Model
                             </th>
                             <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
                               Material
@@ -2390,7 +2423,13 @@ const ProjectDetail = () => {
                                     {category?.name || "-"}
                                   </td>
                                   <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600 truncate max-w-[6rem]" title={item.material}>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.modelNumber || "-"}
+                                  </td>
+                                  <td
+                                    className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
+                                    title={item.material}
+                                  >
                                     {item.material}
                                   </td>
                                   <td className="px-2 py-1 text-gray-600">
@@ -2475,7 +2514,13 @@ const ProjectDetail = () => {
                                   </td>
                                   <td className="px-2 py-1 text-right relative">
                                     <button
-                                      onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                      onClick={() =>
+                                        setOpenActionMenu(
+                                          openActionMenu === item.id
+                                            ? null
+                                            : item.id,
+                                        )
+                                      }
                                       className="text-gray-600 hover:text-gray-900"
                                     >
                                       ⋮
