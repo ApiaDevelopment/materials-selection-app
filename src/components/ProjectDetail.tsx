@@ -1111,7 +1111,7 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                             Qty
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-12">
                             Unit
                           </th>
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
@@ -1849,7 +1849,7 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                                 Qty
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-12">
                                 Unit
                               </th>
                               <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
@@ -2175,7 +2175,7 @@ const ProjectDetail = () => {
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                               Qty
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-16">
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-12">
                               Unit
                             </th>
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
