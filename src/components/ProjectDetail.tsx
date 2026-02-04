@@ -1625,6 +1625,9 @@ const ProjectDetail = () => {
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                               />
                             </td>
+                            <td className="px-2 py-1 text-gray-600">
+                              {newItem.modelNumber || "-"}
+                            </td>
                             <td className="px-2 py-1">
                               <input
                                 type="text"
@@ -1734,6 +1737,20 @@ const ProjectDetail = () => {
                             <td className="px-2 py-1 text-right font-medium">
                               $
                               {(newItem.quantity * newItem.unitCost).toFixed(2)}
+                            </td>
+                            <td className="px-2 py-1">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={newItem.allowance || 0}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    allowance: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
+                              />
                             </td>
                             <td className="px-2 py-1">
                               <select
@@ -1878,9 +1895,6 @@ const ProjectDetail = () => {
                           <tbody>
                             {getUnassignedLineItems().map((item) => {
                               const isEditing = editingItemId === item.id;
-                              const category = categories.find(
-                                (c) => c.id === item.categoryId,
-                              );
 
                               if (isEditing && editingItem) {
                                 return (
@@ -1888,9 +1902,6 @@ const ProjectDetail = () => {
                                     key={item.id}
                                     className="bg-blue-50 border-2 border-indigo-300"
                                   >
-                                    <td className="px-2 py-1 text-gray-600">
-                                      {category?.name || "-"}
-                                    </td>
                                     <td className="px-2 py-1">
                                       <input
                                         type="text"
@@ -1903,6 +1914,9 @@ const ProjectDetail = () => {
                                         }
                                         className="w-full px-1 py-0.5 border rounded text-xs"
                                       />
+                                    </td>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {editingItem.modelNumber || "-"}
                                     </td>
                                     <td className="px-2 py-1">
                                       <input
@@ -2220,18 +2234,13 @@ const ProjectDetail = () => {
                         <tbody>
                           {getVendorLineItems(vendor.id).map((item) => {
                             const isEditing = editingItemId === item.id;
-                            const category = categories.find(
-                              (c) => c.id === item.categoryId,
-                            );
+
                             if (isEditing && editingItem) {
                               return (
                                 <tr
                                   key={item.id}
                                   className="bg-blue-50 border-2 border-indigo-300"
                                 >
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {category?.name || "-"}
-                                  </td>
                                   <td className="px-2 py-1">
                                     <input
                                       type="text"
@@ -2244,6 +2253,9 @@ const ProjectDetail = () => {
                                       }
                                       className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                                     />
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {editingItem.modelNumber || "-"}
                                   </td>
                                   <td className="px-2 py-1">
                                     <input
