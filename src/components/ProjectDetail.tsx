@@ -1126,8 +1126,7 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Status
                           </th>
-                          <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
-                            Actions
+                          <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100">
                           </th>
                         </tr>
                       </thead>
@@ -1403,7 +1402,7 @@ const ProjectDetail = () => {
                                     ✏️
                                   </button>
                                 </td>
-                                <td className="px-2 py-1 text-right relative">
+                                <td className="px-2 py-1 text-center relative bg-gray-100">
                                   <button
                                     onClick={() =>
                                       setOpenActionMenu(
@@ -1861,8 +1860,7 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Status
                               </th>
-                              <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
-                                Actions
+                              <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100">
                               </th>
                             </tr>
                           </thead>
@@ -2056,7 +2054,7 @@ const ProjectDetail = () => {
                                       ✏️
                                     </button>
                                   </td>
-                                  <td className="px-2 py-1 text-right relative">
+                                  <td className="px-2 py-1 text-center relative bg-gray-100">
                                     <button
                                       onClick={() =>
                                         setOpenActionMenu(
@@ -2190,8 +2188,7 @@ const ProjectDetail = () => {
                             <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Status
                             </th>
-                            <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
-                              Actions
+                            <th className="px-2 py-1 text-center font-medium text-gray-600 w-12 bg-gray-100">
                             </th>
                           </tr>
                         </thead>
@@ -2425,7 +2422,7 @@ const ProjectDetail = () => {
                                       ✏️
                                     </button>
                                   </td>
-                                  <td className="px-2 py-1 text-right relative">
+                                  <td className="px-2 py-1 text-center relative bg-gray-100">
                                     <button
                                       onClick={() =>
                                         setOpenActionMenu(
