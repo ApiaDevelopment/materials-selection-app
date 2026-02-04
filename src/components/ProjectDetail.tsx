@@ -1173,12 +1173,19 @@ const ProjectDetail = () => {
                                     <option value="">-</option>
                                     {(() => {
                                       if (editingItem.productId) {
-                                        const productVendorList = productVendors.filter(
-                                          (pv) => pv.productId === editingItem.productId,
+                                        const productVendorList =
+                                          productVendors.filter(
+                                            (pv) =>
+                                              pv.productId ===
+                                              editingItem.productId,
+                                          );
+                                        const vendorIds = productVendorList.map(
+                                          (pv) => pv.vendorId,
                                         );
-                                        const vendorIds = productVendorList.map((pv) => pv.vendorId);
                                         return vendors
-                                          .filter((v) => vendorIds.includes(v.id))
+                                          .filter((v) =>
+                                            vendorIds.includes(v.id),
+                                          )
                                           .map((v) => (
                                             <option key={v.id} value={v.id}>
                                               {v.name}
@@ -1196,7 +1203,8 @@ const ProjectDetail = () => {
                                 <td className="px-2 py-1 text-gray-600 bg-gray-50">
                                   {editingItem.manufacturerId
                                     ? manufacturers.find(
-                                        (m) => m.id === editingItem.manufacturerId,
+                                        (m) =>
+                                          m.id === editingItem.manufacturerId,
                                       )?.name
                                     : "-"}
                                 </td>
@@ -2219,7 +2227,8 @@ const ProjectDetail = () => {
                                   <td className="px-2 py-1 text-gray-600 bg-gray-50">
                                     {editingItem.manufacturerId
                                       ? manufacturers.find(
-                                          (m) => m.id === editingItem.manufacturerId,
+                                          (m) =>
+                                            m.id === editingItem.manufacturerId,
                                         )?.name
                                       : "-"}
                                   </td>

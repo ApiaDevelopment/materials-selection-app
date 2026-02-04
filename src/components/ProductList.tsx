@@ -39,7 +39,7 @@ const ProductList = () => {
     modelNumber: "",
     description: "",
     category: "",
-    unit: "ea.",
+    unit: "ea",
     imageUrl: "",
     productUrl: "",
   });
@@ -93,7 +93,7 @@ const ProductList = () => {
         modelNumber: product.modelNumber || "",
         description: product.description || "",
         category: product.category || "",
-        unit: product.unit || "ea.",
+        unit: product.unit || "ea",
         imageUrl: product.imageUrl || "",
         productUrl: product.productUrl || "",
       });
@@ -105,7 +105,7 @@ const ProductList = () => {
         modelNumber: "",
         description: "",
         category: "",
-        unit: "ea.",
+        unit: "ea",
         imageUrl: "",
         productUrl: "",
       });
@@ -122,7 +122,7 @@ const ProductList = () => {
       modelNumber: "",
       description: "",
       category: "",
-      unit: "ea.",
+      unit: "ea",
       imageUrl: "",
       productUrl: "",
     });
@@ -284,7 +284,7 @@ const ProductList = () => {
           modelNumber: row.modelnumber || row.model_number || row.model || "",
           description: row.description || "",
           category: row.category || "",
-          unit: row.unit || "ea.",
+          unit: row.unit || "ea",
           imageUrl: row.imageurl || row.image_url || row.image || "",
           productUrl: row.producturl || row.product_url || row.url || "",
         };
@@ -749,10 +749,10 @@ const ProductList = () => {
                     }
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="ea.">ea.</option>
+                    <option value="ea">ea</option>
                     <option value="lbs">lbs</option>
-                    <option value="sq. ft.">sq. ft.</option>
-                    <option value="linear ft.">linear ft.</option>
+                    <option value="sqft">sqft</option>
+                    <option value="lnft">lnft</option>
                   </select>
                 </div>
                 <div className="col-span-2">
@@ -835,7 +835,7 @@ const ProductList = () => {
                   <li>modelNumber</li>
                   <li>description</li>
                   <li>category</li>
-                  <li>unit (ea., lbs, sq. ft., linear ft.)</li>
+                  <li>unit (ea, lbs, sqft, lnft)</li>
                   <li>imageUrl</li>
                   <li>productUrl</li>
                 </ul>
@@ -921,7 +921,7 @@ const ProductList = () => {
                       className="w-24 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                     />
                     <span className="text-xs text-gray-600">
-                      / {managingProduct?.unit || "ea."}
+                      / {managingProduct?.unit || "ea"}
                     </span>
                   </div>
                   <button
@@ -989,7 +989,7 @@ const ProductList = () => {
                               className="w-24 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
                             />
                             <span className="text-xs text-gray-500">
-                              / {managingProduct?.unit || "ea."}
+                              / {managingProduct?.unit || "ea"}
                             </span>
                           </div>
                           <button
