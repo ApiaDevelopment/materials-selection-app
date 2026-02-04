@@ -1376,12 +1376,6 @@ const ProjectDetail = () => {
                                         const itemReceipts = orderItem
                                           ? getOrderItemReceipts(orderItem.id)
                                           : [];
-                                        const totalReceived =
-                                          itemReceipts.reduce(
-                                            (sum, r) =>
-                                              sum + r.receivedQuantity,
-                                            0,
-                                          );
                                         const orderTotal = orderItem
                                           ? orderItem.orderedQuantity *
                                             orderItem.orderedPrice
@@ -1411,10 +1405,8 @@ const ProjectDetail = () => {
                                           : null;
 
                                         return (
-                                          <tr
-                                            key={`${item.id}-order-${order.id}`}
-                                            className="text-xs"
-                                          >
+                                          <React.Fragment key={`${item.id}-order-${order.id}`}>
+                                            <tr className="text-xs">
                                             <td className="px-2 py-1"></td>
                                             <td
                                               colSpan={4}
@@ -1463,8 +1455,6 @@ const ProjectDetail = () => {
                                                   )}
                                                 </td>
                                                 <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                  {totalReceived > 0 &&
-                                                    `Received: ${totalReceived}`}
                                                 </td>
                                                 <td className="px-2 py-1 bg-blue-50"></td>
                                               </>
@@ -1472,6 +1462,36 @@ const ProjectDetail = () => {
                                               <td colSpan={8}></td>
                                             )}
                                           </tr>
+                                          {itemReceipts.map((receipt) => (
+                                            <tr key={`receipt-${receipt.id}`} className="text-xs">
+                                              <td className="px-2 py-1"></td>
+                                              <td
+                                                colSpan={4}
+                                                className="px-2 py-1 text-gray-700 bg-green-50"
+                                              >
+                                                <span className="font-medium text-gray-600">
+                                                  Received -{" "}
+                                                  {new Date(
+                                                    receipt.receivedDate,
+                                                  ).toLocaleDateString()}
+                                                </span>
+                                              </td>
+                                              <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
+                                                {receipt.receivedQuantity}
+                                              </td>
+                                              <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                {item.unit || "-"}
+                                              </td>
+                                              <td className="px-2 py-1 bg-green-50"></td>
+                                              <td className="px-2 py-1 bg-green-50"></td>
+                                              <td className="px-2 py-1 bg-green-50"></td>
+                                              <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                {receipt.notes || ""}
+                                              </td>
+                                              <td className="px-2 py-1 bg-green-50"></td>
+                                            </tr>
+                                          ))}
+                                          </React.Fragment>
                                         );
                                       },
                                     )}
@@ -2124,92 +2144,98 @@ const ProjectDetail = () => {
                                             : null;
 
                                           return (
-                                            <React.Fragment key={`${item.id}-order-${order.id}`}>
+                                            <React.Fragment
+                                              key={`${item.id}-order-${order.id}`}
+                                            >
                                               <tr className="text-xs">
-                                              <td className="px-2 py-1"></td>
-                                              <td
-                                                colSpan={4}
-                                                className="px-2 py-1 text-gray-700 bg-blue-50"
-                                              >
-                                                <span className="font-medium text-gray-600">
-                                                  Order #{order.orderNumber} -{" "}
-                                                  {new Date(
-                                                    order.orderDate,
-                                                  ).toLocaleDateString()}
-                                                </span>
-                                              </td>
-                                              {orderItem ? (
-                                                <>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    {orderItem.orderedQuantity}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                    {item.unit || "-"}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    $
-                                                    {orderItem.orderedPrice.toFixed(
-                                                      2,
-                                                    )}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    ${orderTotal.toFixed(2)}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    {variance !== null && (
-                                                      <span
-                                                        className={
-                                                          variance >= 0
-                                                            ? "text-green-600"
-                                                            : "text-red-600"
-                                                        }
-                                                      >
-                                                        {variance >= 0
-                                                          ? "$"
-                                                          : "-$"}
-                                                        {Math.abs(
-                                                          variance,
-                                                        ).toFixed(2)}
-                                                      </span>
-                                                    )}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                  </td>
-                                                  <td className="px-2 py-1 bg-blue-50"></td>
-                                                </>
-                                              ) : (
-                                                <td colSpan={7}></td>
-                                              )}
-                                            </tr>
-                                            {itemReceipts.map((receipt) => (
-                                              <tr key={`receipt-${receipt.id}`} className="text-xs">
                                                 <td className="px-2 py-1"></td>
                                                 <td
                                                   colSpan={4}
-                                                  className="px-2 py-1 text-gray-700 bg-green-50"
+                                                  className="px-2 py-1 text-gray-700 bg-blue-50"
                                                 >
                                                   <span className="font-medium text-gray-600">
-                                                    Received -{" "}
+                                                    Order #{order.orderNumber} -{" "}
                                                     {new Date(
-                                                      receipt.receivedDate,
+                                                      order.orderDate,
                                                     ).toLocaleDateString()}
                                                   </span>
                                                 </td>
-                                                <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
-                                                  {receipt.receivedQuantity}
-                                                </td>
-                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
-                                                  {item.unit || "-"}
-                                                </td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
-                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
-                                                  {receipt.notes || ""}
-                                                </td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                {orderItem ? (
+                                                  <>
+                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                      {
+                                                        orderItem.orderedQuantity
+                                                      }
+                                                    </td>
+                                                    <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
+                                                      {item.unit || "-"}
+                                                    </td>
+                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                      $
+                                                      {orderItem.orderedPrice.toFixed(
+                                                        2,
+                                                      )}
+                                                    </td>
+                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                      ${orderTotal.toFixed(2)}
+                                                    </td>
+                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                      {variance !== null && (
+                                                        <span
+                                                          className={
+                                                            variance >= 0
+                                                              ? "text-green-600"
+                                                              : "text-red-600"
+                                                          }
+                                                        >
+                                                          {variance >= 0
+                                                            ? "$"
+                                                            : "-$"}
+                                                          {Math.abs(
+                                                            variance,
+                                                          ).toFixed(2)}
+                                                        </span>
+                                                      )}
+                                                    </td>
+                                                    <td className="px-2 py-1 text-left text-gray-600 bg-blue-50"></td>
+                                                    <td className="px-2 py-1 bg-blue-50"></td>
+                                                  </>
+                                                ) : (
+                                                  <td colSpan={7}></td>
+                                                )}
                                               </tr>
-                                            ))}
+                                              {itemReceipts.map((receipt) => (
+                                                <tr
+                                                  key={`receipt-${receipt.id}`}
+                                                  className="text-xs"
+                                                >
+                                                  <td className="px-2 py-1"></td>
+                                                  <td
+                                                    colSpan={4}
+                                                    className="px-2 py-1 text-gray-700 bg-green-50"
+                                                  >
+                                                    <span className="font-medium text-gray-600">
+                                                      Received -{" "}
+                                                      {new Date(
+                                                        receipt.receivedDate,
+                                                      ).toLocaleDateString()}
+                                                    </span>
+                                                  </td>
+                                                  <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
+                                                    {receipt.receivedQuantity}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                    {item.unit || "-"}
+                                                  </td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
+                                                  <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                    {receipt.notes || ""}
+                                                  </td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
+                                                </tr>
+                                              ))}
                                             </React.Fragment>
                                           );
                                         },
