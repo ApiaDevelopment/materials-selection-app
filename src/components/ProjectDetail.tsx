@@ -1790,8 +1790,7 @@ const ProjectDetail = () => {
           ) : (
             <>
               {/* No Vendor Selected Section - Always First */}
-              {getUnassignedLineItems().length > 0 &&
-                (() => {
+              {getUnassignedLineItems().length > 0 && (() => {
                   const isExpanded = expandedSections.has("unassigned");
                   return (
                     <div className="border-b last:border-b-0">
@@ -1944,7 +1943,7 @@ const ProjectDetail = () => {
                       )}
                     </div>
                   );
-                })}
+                })()}
 
               {/* Vendors with Line Items */}
               {getActiveVendors().map((vendor) => {
