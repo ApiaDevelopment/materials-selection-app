@@ -1415,7 +1415,7 @@ const ProjectDetail = () => {
                                     ⋮
                                   </button>
                                   {openActionMenu === item.id && (
-                                    <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                    <div className="absolute right-0 bottom-full mb-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                                       <button
                                         onClick={() => {
                                           handleStartModalEdit(item);
@@ -2066,7 +2066,7 @@ const ProjectDetail = () => {
                                       ⋮
                                     </button>
                                     {openActionMenu === item.id && (
-                                      <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                      <div className="absolute right-0 bottom-full mb-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                                         <button
                                           onClick={() => {
                                             handleStartModalEdit(item);
@@ -2433,7 +2433,7 @@ const ProjectDetail = () => {
                                       ⋮
                                     </button>
                                     {openActionMenu === item.id && (
-                                      <div className="absolute right-0 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                                      <div className="absolute right-0 bottom-full mb-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                                         <button
                                           onClick={() => {
                                             handleStartModalEdit(item);
