@@ -7,7 +7,8 @@ const ManufacturerList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingManufacturer, setEditingManufacturer] = useState<Manufacturer | null>(null);
+  const [editingManufacturer, setEditingManufacturer] =
+    useState<Manufacturer | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     website: "",
@@ -59,8 +60,13 @@ const ManufacturerList = () => {
     e.preventDefault();
     try {
       if (editingManufacturer) {
-        const updated = await manufacturerService.updateManufacturer(editingManufacturer.id, formData);
-        setManufacturers(manufacturers.map((m) => (m.id === updated.id ? updated : m)));
+        const updated = await manufacturerService.updateManufacturer(
+          editingManufacturer.id,
+          formData,
+        );
+        setManufacturers(
+          manufacturers.map((m) => (m.id === updated.id ? updated : m)),
+        );
       } else {
         const created = await manufacturerService.createManufacturer(formData);
         setManufacturers([...manufacturers, created]);
@@ -91,17 +97,17 @@ const ManufacturerList = () => {
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-gray-900">
             Manufacturers
           </h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <p className="mt-1 text-xs text-gray-600">
             Manage your manufacturer list for product tracking
           </p>
         </div>
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
           >
             Add Manufacturer
           </button>
@@ -185,7 +191,9 @@ const ManufacturerList = () => {
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4">
             <h2 className="text-sm font-semibold text-gray-900 mb-3">
-              {editingManufacturer ? "Edit Manufacturer" : "Create Manufacturer"}
+              {editingManufacturer
+                ? "Edit Manufacturer"
+                : "Create Manufacturer"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
@@ -228,7 +236,9 @@ const ManufacturerList = () => {
                   type="submit"
                   className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700"
                 >
-                  {editingManufacturer ? "Update Manufacturer" : "Create Manufacturer"}
+                  {editingManufacturer
+                    ? "Update Manufacturer"
+                    : "Create Manufacturer"}
                 </button>
               </div>
             </form>
