@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
     categoryService,
@@ -136,7 +136,7 @@ const ProjectDetail = () => {
 
       // Load receipts for all orders
       const allReceipts = await Promise.all(
-        ordersData.map((order) => orderService.getReceipts(order.id))
+        ordersData.map((order) => orderService.getReceipts(order.id)),
       );
       setReceipts(allReceipts.flat());
 
@@ -614,21 +614,23 @@ const ProjectDetail = () => {
         }));
 
       const newReceipts = await orderService.createReceipts(receiptsToCreate);
-      
+
       setReceipts([...receipts, ...newReceipts]);
 
       const updatedLineItems = [...lineItems];
       const statusUpdates = [];
       for (const [orderItemId, data] of Object.entries(receiveForm.items)) {
         if (data.qty && parseFloat(data.qty) > 0) {
-          const orderItem = orderItems.find(oi => oi.id === orderItemId);
+          const orderItem = orderItems.find((oi) => oi.id === orderItemId);
           if (orderItem) {
-            const lineItem = updatedLineItems.find(li => li.id === orderItem.lineItemId);
+            const lineItem = updatedLineItems.find(
+              (li) => li.id === orderItem.lineItemId,
+            );
             if (lineItem) {
               const newStatus = data.isPartial ? "part recvd" : "received";
               lineItem.status = newStatus;
               statusUpdates.push(
-                lineItemService.update(lineItem.id, { status: newStatus })
+                lineItemService.update(lineItem.id, { status: newStatus }),
               );
             }
           }
@@ -662,17 +664,25 @@ const ProjectDetail = () => {
     }
 
     try {
-      await Promise.all(receipts.map((receipt) => orderService.deleteReceipt(receipt.id)));
-      const updatedLineItems = lineItems.filter(item => item.status === "received" || item.status === "part recvd");
+      await Promise.all(
+        receipts.map((receipt) => orderService.deleteReceipt(receipt.id)),
+      );
+      const updatedLineItems = lineItems.filter(
+        (item) => item.status === "received" || item.status === "part recvd",
+      );
       await Promise.all(
         updatedLineItems.map((item) =>
-          lineItemService.update(item.id, { status: "ordered" })
-        )
+          lineItemService.update(item.id, { status: "ordered" }),
+        ),
       );
       setReceipts([]);
-      setLineItems(lineItems.map(item => 
-        (item.status === "received" || item.status === "part recvd") ? { ...item, status: "ordered" } : item
-      ));
+      setLineItems(
+        lineItems.map((item) =>
+          item.status === "received" || item.status === "part recvd"
+            ? { ...item, status: "ordered" }
+            : item,
+        ),
+      );
     } catch (err) {
       console.error("Failed to clear receipts:", err);
       alert("Failed to clear receipts. Please try again.");
@@ -862,7 +872,11 @@ const ProjectDetail = () => {
               ? "text-orange-600 hover:text-orange-900 border-orange-300 hover:bg-orange-50"
               : "text-gray-400 border-gray-200 cursor-not-allowed"
           }`}
-          title={receipts.length > 0 ? "Delete all receipts for this project" : "No receipts to delete"}
+          title={
+            receipts.length > 0
+              ? "Delete all receipts for this project"
+              : "No receipts to delete"
+          }
         >
           🗑️ Clear All Receipts ({receipts.length})
         </button>
@@ -2080,12 +2094,6 @@ const ProjectDetail = () => {
                                           const itemReceipts = orderItem
                                             ? getOrderItemReceipts(orderItem.id)
                                             : [];
-                                          const totalReceived =
-                                            itemReceipts.reduce(
-                                              (sum, r) =>
-                                                sum + r.receivedQuantity,
-                                              0,
-                                            );
                                           const orderTotal = orderItem
                                             ? orderItem.orderedQuantity *
                                               orderItem.orderedPrice
@@ -2116,10 +2124,8 @@ const ProjectDetail = () => {
                                             : null;
 
                                           return (
-                                            <tr
-                                              key={`${item.id}-order-${order.id}`}
-                                              className="text-xs"
-                                            >
+                                            <React.Fragment key={`${item.id}-order-${order.id}`}>
+                                              <tr className="text-xs">
                                               <td className="px-2 py-1"></td>
                                               <td
                                                 colSpan={4}
@@ -2168,8 +2174,6 @@ const ProjectDetail = () => {
                                                     )}
                                                   </td>
                                                   <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                    {totalReceived > 0 &&
-                                                      `Received: ${totalReceived}`}
                                                   </td>
                                                   <td className="px-2 py-1 bg-blue-50"></td>
                                                 </>
@@ -2177,6 +2181,36 @@ const ProjectDetail = () => {
                                                 <td colSpan={7}></td>
                                               )}
                                             </tr>
+                                            {itemReceipts.map((receipt) => (
+                                              <tr key={`receipt-${receipt.id}`} className="text-xs">
+                                                <td className="px-2 py-1"></td>
+                                                <td
+                                                  colSpan={4}
+                                                  className="px-2 py-1 text-gray-700 bg-green-50"
+                                                >
+                                                  <span className="font-medium text-gray-600">
+                                                    Received -{" "}
+                                                    {new Date(
+                                                      receipt.receivedDate,
+                                                    ).toLocaleDateString()}
+                                                  </span>
+                                                </td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
+                                                  {receipt.receivedQuantity}
+                                                </td>
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                  {item.unit || "-"}
+                                                </td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                  {receipt.notes || ""}
+                                                </td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                              </tr>
+                                            ))}
+                                            </React.Fragment>
                                           );
                                         },
                                       )}
