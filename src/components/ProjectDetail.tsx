@@ -2916,15 +2916,15 @@ const ProjectDetail = () => {
       {/* Order Modal */}
       {showOrderModal && selectedVendorId && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
               {editingOrderId ? "Edit Order" : "Create Order"} -{" "}
               {vendors.find((v) => v.id === selectedVendorId)?.name}
             </h3>
 
-            <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded">
+            <div className="grid grid-cols-2 gap-3 mb-4 bg-gray-50 p-3 rounded">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Order Number *
                 </label>
                 <input
@@ -2933,12 +2933,12 @@ const ProjectDetail = () => {
                   onChange={(e) =>
                     setOrderForm({ ...orderForm, orderNumber: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   placeholder="PO-12345"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Order Date *
                 </label>
                 <input
@@ -2947,11 +2947,11 @@ const ProjectDetail = () => {
                   onChange={(e) =>
                     setOrderForm({ ...orderForm, orderDate: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Notes
                 </label>
                 <textarea
@@ -2959,15 +2959,15 @@ const ProjectDetail = () => {
                   onChange={(e) =>
                     setOrderForm({ ...orderForm, notes: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   rows={2}
                   placeholder="Optional order notes"
                 />
               </div>
             </div>
 
-            <div className="mb-4">
-              <h4 className="font-medium text-gray-900 mb-2">Line Items</h4>
+            <div className="mb-3">
+              <h4 className="font-medium text-xs text-gray-900 mb-2">Line Items</h4>
               <table className="min-w-full text-xs bg-white shadow rounded-lg overflow-hidden">
                 <thead className="bg-gray-100 border-b border-gray-200">
                   <tr>
@@ -3124,20 +3124,20 @@ const ProjectDetail = () => {
               </p>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => {
                   setShowOrderModal(false);
                   setSelectedVendorId(null);
                   setEditingOrderId(null);
                 }}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateOrder}
-                className="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
                 {editingOrderId ? "Update Order" : "Create Order"}
               </button>
