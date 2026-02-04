@@ -2967,7 +2967,9 @@ const ProjectDetail = () => {
             </div>
 
             <div className="mb-3">
-              <h4 className="font-medium text-xs text-gray-900 mb-2">Line Items</h4>
+              <h4 className="font-medium text-xs text-gray-900 mb-2">
+                Line Items
+              </h4>
               <table className="min-w-full text-xs bg-white shadow rounded-lg overflow-hidden">
                 <thead className="bg-gray-100 border-b border-gray-200">
                   <tr>
@@ -3205,18 +3207,18 @@ const ProjectDetail = () => {
       {/* Receive Modal */}
       {showReceiveModal && selectedVendorId && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Receive Items -{" "}
               {vendors.find((v) => v.id === selectedVendorId)?.name}
             </h3>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Select Order
               </label>
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
                 onChange={(e) => setSelectedOrderId(e.target.value)}
                 value={selectedOrderId || ""}
               >
@@ -3232,14 +3234,14 @@ const ProjectDetail = () => {
 
             {selectedOrderId && (
               <>
-                <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 rounded">
+                <div className="grid grid-cols-2 gap-3 mb-4 bg-gray-50 p-3 rounded">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       Received Date *
                     </label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
                       value={receiveForm.receivedDate}
                       onChange={(e) => {
                         setReceiveForm({
@@ -3250,11 +3252,11 @@ const ProjectDetail = () => {
                     />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
                       Notes
                     </label>
                     <textarea
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
                       rows={2}
                       placeholder="Optional receiving notes"
                       value={receiveForm.notes}
@@ -3268,8 +3270,8 @@ const ProjectDetail = () => {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">
+                <div className="mb-3">
+                  <h4 className="font-medium text-xs text-gray-900 mb-2">
                     Order Items
                   </h4>
                   <table className="min-w-full text-xs border">
@@ -3426,20 +3428,20 @@ const ProjectDetail = () => {
               </>
             )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => {
                   setShowReceiveModal(false);
                   setSelectedVendorId(null);
                   setSelectedOrderId(null);
                 }}
-                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRecordReceipt}
-                className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                 disabled={!selectedOrderId}
               >
                 Record Receipt
