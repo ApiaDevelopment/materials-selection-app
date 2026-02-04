@@ -2750,6 +2750,12 @@ const ProjectDetail = () => {
                       const vendorIds = productVendorList.map(
                         (pv) => pv.vendorId,
                       );
+                      
+                      // Include the current vendor if it's not in the list
+                      if (editingItem.vendorId && !vendorIds.includes(editingItem.vendorId)) {
+                        vendorIds.push(editingItem.vendorId);
+                      }
+                      
                       return vendors
                         .filter((v) => vendorIds.includes(v.id))
                         .map((v) => (
