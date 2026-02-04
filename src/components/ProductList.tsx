@@ -874,26 +874,24 @@ const ProductList = () => {
 
       {/* Vendor Management Modal */}
       {isVendorModalOpen && managingProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Manage Vendors - {managingProduct.name}
-              </h2>
-            </div>
-            <div className="p-6">
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-4">
+            <h2 className="text-sm font-semibold text-gray-900 mb-3">
+              Manage Vendors - {managingProduct.name}
+            </h2>
+            <div className="space-y-3">
               {/* Add New Vendor */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <h3 className="text-xs font-medium text-gray-700 mb-2">
                   Add Vendor
                 </h3>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <select
                     value={newVendor.vendorId}
                     onChange={(e) =>
                       setNewVendor({ ...newVendor, vendorId: e.target.value })
                     }
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Vendor...</option>
                     {vendors
@@ -908,7 +906,7 @@ const ProductList = () => {
                       ))}
                   </select>
                   <div className="flex items-center gap-1">
-                    <span className="text-sm text-gray-600">$</span>
+                    <span className="text-xs text-gray-600">$</span>
                     <input
                       type="number"
                       step="0.01"
@@ -920,16 +918,16 @@ const ProductList = () => {
                           cost: parseFloat(e.target.value) || 0,
                         })
                       }
-                      className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                      className="w-24 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                     />
-                    <span className="text-sm text-gray-600">
+                    <span className="text-xs text-gray-600">
                       / {managingProduct?.unit || "ea."}
                     </span>
                   </div>
                   <button
                     onClick={handleAddVendor}
                     disabled={!newVendor.vendorId}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
                     Add
                   </button>
@@ -938,11 +936,11 @@ const ProductList = () => {
 
               {/* Vendor List */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                <h3 className="text-xs font-medium text-gray-700 mb-2">
                   Current Vendors ({productVendors.length})
                 </h3>
                 {productVendors.length === 0 ? (
-                  <p className="text-sm text-gray-500 py-4 text-center">
+                  <p className="text-xs text-gray-500 py-3 text-center">
                     No vendors assigned yet
                   </p>
                 ) : (
@@ -952,7 +950,7 @@ const ProductList = () => {
                       return (
                         <div
                           key={pv.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border ${
+                          className={`flex items-center gap-2 p-2 rounded-lg border ${
                             pv.isPrimary
                               ? "border-indigo-500 bg-indigo-50"
                               : "border-gray-200 bg-white"
@@ -960,7 +958,7 @@ const ProductList = () => {
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">
+                              <span className="text-xs font-medium text-gray-900">
                                 {vendor?.name || "Unknown Vendor"}
                               </span>
                               {pv.isPrimary && (
@@ -971,7 +969,7 @@ const ProductList = () => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-500">$</span>
+                            <span className="text-xs text-gray-500">$</span>
                             <input
                               type="number"
                               step="0.01"
@@ -988,9 +986,9 @@ const ProductList = () => {
                                   parseFloat(e.target.value) || 0,
                                 )
                               }
-                              className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+                              className="w-24 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
                             />
-                            <span className="text-sm text-gray-500">
+                            <span className="text-xs text-gray-500">
                               / {managingProduct?.unit || "ea."}
                             </span>
                           </div>
@@ -1017,10 +1015,10 @@ const ProductList = () => {
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
                 <button
                   onClick={handleCloseVendorModal}
-                  className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+                  className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
                 >
                   Close
                 </button>
