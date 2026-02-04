@@ -368,21 +368,21 @@ const ProductList = () => {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-lg font-semibold text-gray-900">Products</h1>
+          <p className="mt-1 text-xs text-gray-600">
             Manage your product catalog
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex gap-2">
           <button
             onClick={() => setIsCsvModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700"
           >
             📊 Import CSV
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
           >
             + Add Product
           </button>
@@ -396,7 +396,7 @@ const ProductList = () => {
       )}
 
       {/* Filter Controls */}
-      <div className="mt-4 flex flex-col sm:flex-row gap-4">
+      <div className="mt-4 flex flex-col sm:flex-row gap-3">
         <div className="flex gap-2">
           <button
             onClick={() => {
@@ -405,7 +405,7 @@ const ProductList = () => {
               setSelectedVendorId("");
               setSelectedCategory("");
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            className={`px-3 py-1 rounded-lg text-xs font-medium ${
               filterView === "all"
                 ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-700 border hover:bg-gray-50"
@@ -415,7 +415,7 @@ const ProductList = () => {
           </button>
           <button
             onClick={() => setFilterView("manufacturer")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            className={`px-3 py-1 rounded-lg text-xs font-medium ${
               filterView === "manufacturer"
                 ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-700 border hover:bg-gray-50"
@@ -425,7 +425,7 @@ const ProductList = () => {
           </button>
           <button
             onClick={() => setFilterView("vendor")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            className={`px-3 py-1 rounded-lg text-xs font-medium ${
               filterView === "vendor"
                 ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-700 border hover:bg-gray-50"
@@ -435,7 +435,7 @@ const ProductList = () => {
           </button>
           <button
             onClick={() => setFilterView("category")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            className={`px-3 py-1 rounded-lg text-xs font-medium ${
               filterView === "category"
                 ? "bg-indigo-600 text-white"
                 : "bg-white text-gray-700 border hover:bg-gray-50"
@@ -449,7 +449,7 @@ const ProductList = () => {
           <select
             value={selectedManufacturerId}
             onChange={(e) => setSelectedManufacturerId(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="px-2 py-1 text-xs border rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Select Manufacturer...</option>
             {manufacturers.map((m) => (
@@ -464,7 +464,7 @@ const ProductList = () => {
           <select
             value={selectedVendorId}
             onChange={(e) => setSelectedVendorId(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="px-2 py-1 text-xs border rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Select Vendor...</option>
             {vendors.map((v) => (
@@ -479,7 +479,7 @@ const ProductList = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            className="px-2 py-1 text-xs border rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Select Category...</option>
             {Array.from(
@@ -496,13 +496,13 @@ const ProductList = () => {
       </div>
 
       {/* Search */}
-      <div className="mt-4">
+      <div className="mt-3">
         <input
           type="text"
           placeholder="Search products by name, model, category, or manufacturer..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
       </div>
 
