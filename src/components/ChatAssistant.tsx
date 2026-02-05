@@ -1,10 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 
+interface Citation {
+  text: string;
+  sources: {
+    content: string;
+    location: string;
+  }[];
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  citations?: Citation[];
 }
+
+type ChatMode = "project" | "documents";
 
 interface ChatAssistantProps {
   projectId: string;
@@ -13,6 +24,7 @@ interface ChatAssistantProps {
 
 export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<ChatMode>("project");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,35 +52,63 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
     setLoading(true);
 
     try {
-      // Send full conversation history for context
-      const conversationHistory = [...messages, userMessage].map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      if (mode === "project") {
+        // Project chat mode - send full conversation history
+        const conversationHistory = [...messages, userMessage].map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      const response = await fetch(
-        "https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod/ai/chat",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            projectId,
-            messages: conversationHistory,
-          }),
-        },
-      );
+        const response = await fetch(
+          "https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod/ai/chat",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              projectId,
+              messages: conversationHistory,
+            }),
+          },
+        );
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.success) {
-        const aiMessage: Message = {
-          role: "assistant",
-          content: data.response,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
+        if (data.success) {
+          const aiMessage: Message = {
+            role: "assistant",
+            content: data.response,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+        } else {
+          throw new Error(data.error || "Failed to get response");
+        }
       } else {
-        throw new Error(data.error || "Failed to get response");
+        // Document search mode
+        const response = await fetch(
+          "https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod/ai/docs",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: userMessage.content,
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+          const aiMessage: Message = {
+            role: "assistant",
+            content: data.response,
+            timestamp: new Date(),
+            citations: data.citations,
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+        } else {
+          throw new Error(data.error || "Failed to get response");
+        }
       }
     } catch (error) {
       const errorMessage: Message = {
@@ -97,29 +137,66 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
           {/* Header */}
           <div className="bg-blue-600 text-white px-3 py-2 rounded-t-lg flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-lg">💬</span>
+              <span className="text-lg">{mode === "project" ? "💬" : "📄"}</span>
               <div>
-                <h3 className="font-semibold text-sm">Project Assistant</h3>
-                {projectName && (
+                <h3 className="font-semibold text-sm">
+                  {mode === "project" ? "Project Assistant" : "Document Search"}
+                </h3>
+                {projectName && mode === "project" && (
                   <p className="text-xs opacity-90">{projectName}</p>
                 )}
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-blue-700 rounded px-2 py-1 text-sm"
-            >
+              className="text-white hover:bg-blue-700 rounded px-2 py-1 text-sm">
               ✕
             </button>
+          </div>
+
+          {/* Mode Toggle */}
+          <div className="bg-gray-100 px-3 py-2 border-b border-gray-200">
+            <div className="flex gap-1 bg-white rounded-lg p-1">
+              <button
+                onClick={() => {
+                  setMode("project");
+                  setMessages([]);
+                }}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  mode === "project"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Project Chat
+              </button>
+              <button
+                onClick={() => {
+                  setMode("documents");
+                  setMessages([]);
+                }}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  mode === "documents"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Documents
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
-                <p className="text-sm">👋 Hi! I'm your AI assistant.</p>
+                <p className="text-sm">
+                  {mode === "project" ? "Hi! I'm your AI assistant." : "Search project documents"}
+                </p>
                 <p className="text-xs mt-2">
-                  Ask me anything about this project!
+                  {mode === "project"
+                    ? "Ask me anything about this project!"
+                    : "Ask questions about specifications or requirements."}
                 </p>
               </div>
             ) : (
@@ -136,6 +213,25 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.content}</p>
+                    
+                    {/* Citations */}
+                    {msg.citations && msg.citations.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-xs font-semibold text-gray-600 mb-1">
+                          Sources:
+                        </p>
+                        {msg.citations.map((citation, citIdx) => (
+                          <div key={citIdx} className="text-xs text-gray-500 mb-1">
+                            {citation.sources.map((source, srcIdx) => (
+                              <div key={srcIdx} className="truncate">
+                                • {source.location.split('/').pop()}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     <p
                       className={`text-xs mt-1 ${
                         msg.role === "user" ? "text-blue-100" : "text-gray-400"
@@ -181,7 +277,11 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask a question..."
+                placeholder={
+                  mode === "project"
+                    ? "Ask about this project..."
+                    : "Search documents..."
+                }
                 disabled={loading}
                 className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
@@ -190,7 +290,7 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
                 disabled={loading || !input.trim()}
                 className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                Send
+                {mode === "project" ? "Send" : "Search"}
               </button>
             </div>
           </div>
