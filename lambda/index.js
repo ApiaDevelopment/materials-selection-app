@@ -19,10 +19,19 @@ const {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } = require("@aws-sdk/client-bedrock-runtime");
+const {
+  BedrockAgentRuntimeClient,
+  RetrieveAndGenerateCommand,
+} = require("@aws-sdk/client-bedrock-agent-runtime");
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const ddb = DynamoDBDocumentClient.from(client);
 const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
+const bedrockAgentClient = new BedrockAgentRuntimeClient({
+  region: "us-east-1",
+});
+
+const KNOWLEDGE_BASE_ID = "WWMDUQTZJZ";
 
 const PROJECTS_TABLE = "MaterialsSelection-Projects";
 const CATEGORIES_TABLE = "MaterialsSelection-Categories";
@@ -100,6 +109,10 @@ exports.handler = async (event) => {
     if (path === "/ai/chat" && method === "POST") {
       const { projectId, messages } = JSON.parse(event.body);
       return await chatWithProject(projectId, messages);
+    }
+    if (path === "/ai/docs" && method === "POST") {
+      const { question } = JSON.parse(event.body);
+      return await queryKnowledgeBase(question);
     }
 
     // Categories routes
@@ -1333,6 +1346,58 @@ async function testBedrock() {
       headers,
       body: JSON.stringify({
         error: "Failed to invoke Bedrock",
+        details: error.message,
+      }),
+    };
+  }
+}
+
+// Query Knowledge Base for document-based questions
+async function queryKnowledgeBase(question) {
+  try {
+    const command = new RetrieveAndGenerateCommand({
+      input: {
+        text: question,
+      },
+      retrieveAndGenerateConfiguration: {
+        type: "KNOWLEDGE_BASE",
+        knowledgeBaseConfiguration: {
+          knowledgeBaseId: KNOWLEDGE_BASE_ID,
+          modelArn:
+            "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0",
+        },
+      },
+    });
+
+    const response = await bedrockAgentClient.send(command);
+
+    // Extract citations if available
+    const citations =
+      response.citations?.map((citation) => ({
+        text: citation.generatedResponsePart?.textResponsePart?.text,
+        sources: citation.retrievedReferences?.map((ref) => ({
+          content: ref.content?.text,
+          location: ref.location?.s3Location?.uri,
+        })),
+      })) || [];
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        response: response.output?.text || "No response generated",
+        citations: citations,
+        sessionId: response.sessionId,
+      }),
+    };
+  } catch (error) {
+    console.error("Knowledge Base error:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: "Failed to query Knowledge Base",
         details: error.message,
       }),
     };
