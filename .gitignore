@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lambda deployment artifacts
+lambda/*.zip
+lambda/deploy/
+lambda/temp_lambda_zip/
+cors-response.json

@@ -1,9 +1,8 @@
 import axios from "axios";
 
-// TODO: Replace with your actual AWS API Gateway endpoint
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://your-api-gateway-url.amazonaws.com";
+  "https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -24,6 +24,7 @@ import type {
   Receipt,
   Vendor,
 } from "../types";
+import { ChatAssistant } from "./ChatAssistant";
 import DocumentManager from "./DocumentManager";
 
 const ProjectDetail = () => {
@@ -4340,6 +4341,11 @@ const ProjectDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Chat Assistant */}
+      {project && project.id && (
+        <ChatAssistant projectId={project.id} projectName={project.name} />
       )}
     </div>
   );

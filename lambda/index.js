@@ -15,9 +15,14 @@ const {
   uploadFileToProjectFolder,
   deleteFileFromProjectFolder,
 } = require("./sharepointService");
+const {
+  BedrockRuntimeClient,
+  InvokeModelCommand,
+} = require("@aws-sdk/client-bedrock-runtime");
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const ddb = DynamoDBDocumentClient.from(client);
+const bedrockClient = new BedrockRuntimeClient({ region: "us-east-1" });
 
 const PROJECTS_TABLE = "MaterialsSelection-Projects";
 const CATEGORIES_TABLE = "MaterialsSelection-Categories";
@@ -40,12 +45,13 @@ const headers = {
 exports.handler = async (event) => {
   console.log("Event:", JSON.stringify(event, null, 2));
 
-  if (event.requestContext.http.method === "OPTIONS") {
+  // Support both REST API (v1) and HTTP API (v2) formats
+  const method = event.requestContext?.http?.method || event.httpMethod;
+  const path = event.requestContext?.http?.path || event.path;
+
+  if (method === "OPTIONS") {
     return { statusCode: 200, headers, body: "" };
   }
-
-  const path = event.requestContext.http.path;
-  const method = event.requestContext.http.method;
 
   try {
     // Projects routes
@@ -85,6 +91,15 @@ exports.handler = async (event) => {
       const id = path.split("/")[2];
       const fileId = path.split("/")[4];
       return await deleteProjectFile(id, fileId);
+    }
+
+    // AI routes
+    if (path === "/ai/test" && method === "POST") {
+      return await testBedrock();
+    }
+    if (path === "/ai/chat" && method === "POST") {
+      const { projectId, messages } = JSON.parse(event.body);
+      return await chatWithProject(projectId, messages);
     }
 
     // Categories routes
@@ -1269,6 +1284,313 @@ async function updateProductVendor(id, data) {
     new PutCommand({ TableName: PRODUCTVENDORS_TABLE, Item: productVendor }),
   );
   return { statusCode: 200, headers, body: JSON.stringify(productVendor) };
+}
+
+// AI Functions
+async function testBedrock() {
+  try {
+    const payload = {
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              text: "Hello! Please respond with a brief greeting to confirm you're working.",
+            },
+          ],
+        },
+      ],
+      inferenceConfig: {
+        max_new_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9,
+      },
+    };
+
+    const command = new InvokeModelCommand({
+      modelId: "us.amazon.nova-micro-v1:0",
+      body: JSON.stringify(payload),
+      contentType: "application/json",
+      accept: "application/json",
+    });
+
+    const response = await bedrockClient.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        message: responseBody.output.message.content[0].text,
+        model: "us.amazon.nova-micro-v1:0",
+      }),
+    };
+  } catch (error) {
+    console.error("Bedrock error:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: "Failed to invoke Bedrock",
+        details: error.message,
+      }),
+    };
+  }
+}
+
+// Helper function to load entities by ID and return as Map
+async function loadEntitiesById(tableName, ids) {
+  if (ids.length === 0) return new Map();
+
+  const results = await Promise.all(
+    ids.map((id) =>
+      ddb
+        .send(new GetCommand({ TableName: tableName, Key: { id } }))
+        .then((result) => result.Item)
+        .catch(() => null),
+    ),
+  );
+
+  const entityMap = new Map();
+  results.forEach((item, idx) => {
+    if (item) {
+      entityMap.set(ids[idx], item);
+    }
+  });
+
+  return entityMap;
+}
+
+async function chatWithProject(projectId, conversationMessages) {
+  try {
+    // Load project from DynamoDB
+    const projectResult = await ddb.send(
+      new GetCommand({ TableName: PROJECTS_TABLE, Key: { id: projectId } }),
+    );
+
+    if (!projectResult.Item) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: "Project not found" }),
+      };
+    }
+
+    const project = projectResult.Item;
+
+    // Load categories for this project
+    const categoriesResult = await ddb.send(
+      new ScanCommand({
+        TableName: CATEGORIES_TABLE,
+        FilterExpression: "projectId = :projectId",
+        ExpressionAttributeValues: { ":projectId": projectId },
+      }),
+    );
+
+    const categories = categoriesResult.Items || [];
+
+    // Load line items for this project
+    const lineItemsResult = await ddb.send(
+      new QueryCommand({
+        TableName: LINEITEMS_TABLE,
+        IndexName: "ProjectIdIndex",
+        KeyConditionExpression: "projectId = :projectId",
+        ExpressionAttributeValues: { ":projectId": projectId },
+      }),
+    );
+
+    const lineItems = lineItemsResult.Items || [];
+
+    // Collect unique IDs to fetch related entities
+    const productIds = new Set();
+    const manufacturerIds = new Set();
+    const vendorIds = new Set();
+
+    lineItems.forEach((item) => {
+      if (item.productId) productIds.add(item.productId);
+      if (item.manufacturerId) manufacturerIds.add(item.manufacturerId);
+      if (item.vendorId) vendorIds.add(item.vendorId);
+    });
+
+    // Load related entities in parallel
+    const [productsMap, manufacturersMap, vendorsMap] = await Promise.all([
+      loadEntitiesById(PRODUCTS_TABLE, Array.from(productIds)),
+      loadEntitiesById(MANUFACTURERS_TABLE, Array.from(manufacturerIds)),
+      loadEntitiesById(VENDORS_TABLE, Array.from(vendorIds)),
+    ]);
+
+    // Calculate totals
+    const totalProjectCost = lineItems.reduce(
+      (sum, item) => sum + (item.totalCost || 0),
+      0,
+    );
+    const totalCategoryAllowance = categories.reduce(
+      (sum, cat) => sum + (cat.allowance || 0),
+      0,
+    );
+
+    // Build context
+    const contextParts = [
+      `Project: ${project.name || "Unnamed Project"}`,
+      `Customer: ${project.customerName || "Not specified"}`,
+      `Address: ${project.address || "Not specified"}`,
+      `Type: ${project.type || "Not specified"}`,
+      `Status: ${project.status || "Not specified"}`,
+      `Description: ${project.description || "No description"}`,
+      `Start Date: ${project.estimatedStartDate || "Not set"}`,
+      `Total Allowance: $${totalCategoryAllowance.toLocaleString()}`,
+      `Total Cost (Line Items): $${totalProjectCost.toLocaleString()}`,
+      `Allowance Remaining: $${(totalCategoryAllowance - totalProjectCost).toLocaleString()}`,
+    ];
+
+    if (categories.length > 0) {
+      contextParts.push(`\nCategories (${categories.length}):`);
+      categories.forEach((cat) => {
+        const categoryLineItems = lineItems.filter(
+          (li) => li.categoryId === cat.id,
+        );
+        const categoryCost = categoryLineItems.reduce(
+          (sum, li) => sum + (li.totalCost || 0),
+          0,
+        );
+        contextParts.push(
+          `  - ${cat.categoryName || cat.name}: ${cat.description || "No description"}`,
+          `    Allowance: $${(cat.allowance || 0).toLocaleString()}, Actual: $${categoryCost.toLocaleString()}, Remaining: $${((cat.allowance || 0) - categoryCost).toLocaleString()}`,
+          `    Line Items: ${categoryLineItems.length}`,
+        );
+      });
+    }
+
+    if (lineItems.length > 0) {
+      contextParts.push(`\nLine Items (${lineItems.length}):`);
+      lineItems.forEach((item, idx) => {
+        const product = productsMap.get(item.productId);
+        const manufacturer = manufacturersMap.get(item.manufacturerId);
+        const vendor = vendorsMap.get(item.vendorId);
+
+        contextParts.push(`  ${idx + 1}. ${item.name || "Unnamed Item"}`);
+        if (item.material) contextParts.push(`     Material: ${item.material}`);
+        if (product) {
+          contextParts.push(
+            `     Product: ${product.name}${product.modelNumber ? ` (Model: ${product.modelNumber})` : ""}`,
+          );
+          if (product.description)
+            contextParts.push(`     Description: ${product.description}`);
+        }
+        if (manufacturer)
+          contextParts.push(`     Manufacturer: ${manufacturer.name}`);
+        if (vendor) contextParts.push(`     Vendor: ${vendor.name}`);
+        contextParts.push(
+          `     Quantity: ${item.quantity || 0} ${item.unit || "units"}`,
+          `     Unit Cost: $${(item.unitCost || 0).toLocaleString()}`,
+          `     Total Cost: $${(item.totalCost || 0).toLocaleString()}`,
+          `     Status: ${item.status || "pending"}`,
+        );
+        if (item.notes) contextParts.push(`     Notes: ${item.notes}`);
+      });
+    }
+
+    if (vendorsMap.size > 0) {
+      contextParts.push(`\nVendors (${vendorsMap.size}):`);
+      vendorsMap.forEach((vendor) => {
+        const vendorLineItems = lineItems.filter(
+          (li) => li.vendorId === vendor.id,
+        );
+        contextParts.push(
+          `  - ${vendor.name}${vendor.website ? ` (${vendor.website})` : ""}`,
+          `    Contact: ${vendor.contactInfo || "Not specified"}`,
+          `    Items: ${vendorLineItems.length}`,
+        );
+      });
+    }
+
+    if (manufacturersMap.size > 0) {
+      contextParts.push(`\nManufacturers (${manufacturersMap.size}):`);
+      manufacturersMap.forEach((mfr) => {
+        const mfrProducts = Array.from(productsMap.values()).filter(
+          (p) => p.manufacturerId === mfr.id,
+        );
+        contextParts.push(
+          `  - ${mfr.name}${mfr.website ? ` (${mfr.website})` : ""}`,
+          `    Products: ${mfrProducts.length}`,
+        );
+      });
+    }
+
+    const projectContext = contextParts.join("\n");
+
+    // Build system message for Amazon Nova
+    const systemMessage = `You are a construction materials expert assistant helping with the project "${project.name || "this construction project"}".
+
+Project Details:
+${projectContext}
+
+Provide helpful, accurate advice about this construction project. Use the project details to give contextual, specific answers. If asked about project specifics, refer to the actual data provided.`;
+
+    // Build conversation history in Nova format
+    const messages = [];
+
+    // Add system context to first user message
+    conversationMessages.forEach((msg, index) => {
+      if (msg.role === "user") {
+        const text =
+          index === 0
+            ? `${systemMessage}\n\nUser Question: ${msg.content}`
+            : msg.content;
+        messages.push({
+          role: "user",
+          content: [{ text }],
+        });
+      } else if (msg.role === "assistant") {
+        messages.push({
+          role: "assistant",
+          content: [{ text: msg.content }],
+        });
+      }
+    });
+
+    // Call Bedrock with Amazon Nova
+    const payload = {
+      messages,
+      inferenceConfig: {
+        max_new_tokens: 2000,
+        temperature: 0.7,
+        top_p: 0.9,
+      },
+    };
+
+    const command = new InvokeModelCommand({
+      modelId: "us.amazon.nova-micro-v1:0",
+      body: JSON.stringify(payload),
+      contentType: "application/json",
+      accept: "application/json",
+    });
+
+    const response = await bedrockClient.send(command);
+    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        response: responseBody.output.message.content[0].text,
+        projectName: project.name,
+        model: "us.amazon.nova-micro-v1:0",
+      }),
+    };
+  } catch (error) {
+    console.error("Chat error:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: "Failed to process chat request",
+        details: error.message,
+      }),
+    };
+  }
 }
 
 async function deleteProductVendor(id) {
