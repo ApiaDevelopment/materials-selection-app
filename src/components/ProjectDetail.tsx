@@ -24,6 +24,7 @@ import type {
   Receipt,
   Vendor,
 } from "../types";
+import DocumentManager from "./DocumentManager";
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,6 +125,7 @@ const ProjectDetail = () => {
   const [insertQuantity, setInsertQuantity] = useState<number>(1);
   const [insertUnitCost, setInsertUnitCost] = useState<number>(0);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -1225,6 +1227,14 @@ const ProjectDetail = () => {
             >
               ✏️ Edit
             </button>
+            {project.sharepointFolderId && project.sharepointDriveId && (
+              <button
+                onClick={() => setShowDocumentsModal(true)}
+                className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+              >
+                📄 Documents
+              </button>
+            )}
             <button
               onClick={() => setShowCategoryModal(true)}
               className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
@@ -4299,6 +4309,34 @@ const ProjectDetail = () => {
               >
                 Record Receipt
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documents Modal */}
+      {showDocumentsModal && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Project Documents
+              </h2>
+              <button
+                onClick={() => setShowDocumentsModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              {project.sharepointFolderId && project.sharepointDriveId && (
+                <DocumentManager
+                  projectId={project.id}
+                  sharepointFolderId={project.sharepointFolderId}
+                  sharepointDriveId={project.sharepointDriveId}
+                />
+              )}
             </div>
           </div>
         </div>

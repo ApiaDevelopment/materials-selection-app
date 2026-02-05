@@ -9,7 +9,12 @@ const {
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { randomUUID } = require("crypto");
-const { createProjectFolder } = require("./sharepointService");
+const {
+  createProjectFolder,
+  getProjectFolderContents,
+  uploadFileToProjectFolder,
+  deleteFileFromProjectFolder,
+} = require("./sharepointService");
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const ddb = DynamoDBDocumentClient.from(client);
@@ -61,6 +66,25 @@ exports.handler = async (event) => {
     if (path.match(/^\/projects\/[^\/]+$/) && method === "DELETE") {
       const id = path.split("/")[2];
       return await deleteProject(id);
+    }
+    if (path.match(/^\/projects\/[^\/]+\/files$/) && method === "GET") {
+      const id = path.split("/")[2];
+      return await getProjectFiles(id);
+    }
+    if (
+      path.match(/^\/projects\/[^\/]+\/files\/upload$/) &&
+      method === "POST"
+    ) {
+      const id = path.split("/")[2];
+      return await uploadProjectFile(id, JSON.parse(event.body));
+    }
+    if (
+      path.match(/^\/projects\/[^\/]+\/files\/[^\/]+$/) &&
+      method === "DELETE"
+    ) {
+      const id = path.split("/")[2];
+      const fileId = path.split("/")[4];
+      return await deleteProjectFile(id, fileId);
     }
 
     // Categories routes
@@ -349,6 +373,172 @@ async function updateProject(id, data) {
 async function deleteProject(id) {
   await ddb.send(new DeleteCommand({ TableName: PROJECTS_TABLE, Key: { id } }));
   return { statusCode: 204, headers, body: "" };
+}
+
+async function getProjectFiles(id) {
+  // Get the project to retrieve SharePoint folder info
+  const result = await ddb.send(
+    new GetCommand({ TableName: PROJECTS_TABLE, Key: { id } }),
+  );
+
+  if (!result.Item) {
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ message: "Project not found" }),
+    };
+  }
+
+  const project = result.Item;
+
+  // Check if project has SharePoint folder
+  if (!project.sharepointDriveId || !project.sharepointFolderId) {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ files: [], message: "No SharePoint folder" }),
+    };
+  }
+
+  // Get folder contents from SharePoint
+  try {
+    const files = await getProjectFolderContents(
+      project.sharepointDriveId,
+      project.sharepointFolderId,
+    );
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ files }),
+    };
+  } catch (error) {
+    console.error("Error fetching SharePoint files:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        message: "Failed to fetch files from SharePoint",
+        error: error.message,
+      }),
+    };
+  }
+}
+
+async function uploadProjectFile(id, data) {
+  // Get the project to retrieve SharePoint folder info
+  const result = await ddb.send(
+    new GetCommand({ TableName: PROJECTS_TABLE, Key: { id } }),
+  );
+
+  if (!result.Item) {
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ message: "Project not found" }),
+    };
+  }
+
+  const project = result.Item;
+
+  // Check if project has SharePoint folder
+  if (!project.sharepointDriveId || !project.sharepointFolderId) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ message: "Project has no SharePoint folder" }),
+    };
+  }
+
+  // Validate request
+  if (!data.fileName || !data.fileContent) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        message: "fileName and fileContent are required",
+      }),
+    };
+  }
+
+  // Upload file to SharePoint
+  try {
+    // Convert base64 to Buffer
+    const fileBuffer = Buffer.from(data.fileContent, "base64");
+
+    const uploadedFile = await uploadFileToProjectFolder(
+      project.sharepointDriveId,
+      project.sharepointFolderId,
+      data.fileName,
+      fileBuffer,
+    );
+
+    return {
+      statusCode: 201,
+      headers,
+      body: JSON.stringify({
+        message: "File uploaded successfully",
+        file: uploadedFile,
+      }),
+    };
+  } catch (error) {
+    console.error("Error uploading file to SharePoint:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        message: "Failed to upload file to SharePoint",
+        error: error.message,
+      }),
+    };
+  }
+}
+
+async function deleteProjectFile(id, fileId) {
+  // Get the project to retrieve SharePoint folder info
+  const result = await ddb.send(
+    new GetCommand({ TableName: PROJECTS_TABLE, Key: { id } }),
+  );
+
+  if (!result.Item) {
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ message: "Project not found" }),
+    };
+  }
+
+  const project = result.Item;
+
+  // Check if project has SharePoint folder
+  if (!project.sharepointDriveId || !project.sharepointFolderId) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ message: "Project has no SharePoint folder" }),
+    };
+  }
+
+  // Delete file from SharePoint
+  try {
+    await deleteFileFromProjectFolder(project.sharepointDriveId, fileId);
+
+    return {
+      statusCode: 204,
+      headers,
+      body: "",
+    };
+  } catch (error) {
+    console.error("Error deleting file from SharePoint:", error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        message: "Failed to delete file from SharePoint",
+        error: error.message,
+      }),
+    };
+  }
 }
 
 // Category functions

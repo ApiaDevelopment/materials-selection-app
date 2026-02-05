@@ -285,8 +285,21 @@ async function uploadFileToProjectFolder(
   return uploadedFile;
 }
 
+/**
+ * Delete file from project folder
+ * @param {string} driveId - Drive ID
+ * @param {string} fileId - File ID to delete
+ * @returns {Promise<void>}
+ */
+async function deleteFileFromProjectFolder(driveId, fileId) {
+  const client = await getGraphClient();
+
+  await client.api(`/drives/${driveId}/items/${fileId}`).delete();
+}
+
 module.exports = {
   createProjectFolder,
   getProjectFolderContents,
   uploadFileToProjectFolder,
+  deleteFileFromProjectFolder,
 };
