@@ -9,6 +9,7 @@ const {
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { randomUUID } = require("crypto");
+const { createProjectFolder } = require("./sharepointService");
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const ddb = DynamoDBDocumentClient.from(client);
@@ -290,6 +291,33 @@ async function createProject(data) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+
+  // Create SharePoint folder if configured
+  if (project.name && process.env.SHAREPOINT_SITE_URL) {
+    try {
+      console.log(`Creating SharePoint folder for project: ${project.name}`);
+      const folderInfo = await createProjectFolder(
+        project.id,
+        project.name,
+        project.type,
+        project.customerName,
+      );
+
+      // Add SharePoint info to project
+      project.sharepointFolderId = folderInfo.id;
+      project.sharepointFolderUrl = folderInfo.webUrl;
+      project.sharepointDriveId = folderInfo.driveId;
+      project.sharepointSiteId = folderInfo.siteId;
+
+      console.log(`SharePoint folder created: ${folderInfo.webUrl}`);
+    } catch (error) {
+      console.error("SharePoint folder creation failed:", error.message);
+      console.error("Stack:", error.stack);
+      // Continue with project creation even if SharePoint fails
+      // Don't throw - project creation should succeed regardless
+    }
+  }
+
   await ddb.send(new PutCommand({ TableName: PROJECTS_TABLE, Item: project }));
   return { statusCode: 201, headers, body: JSON.stringify(project) };
 }

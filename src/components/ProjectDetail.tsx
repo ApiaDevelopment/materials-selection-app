@@ -1201,6 +1201,18 @@ const ProjectDetail = () => {
                   <span className="font-medium">Email:</span> {project.email}
                 </div>
               )}
+              {project.sharepointFolderUrl && (
+                <div className="col-span-2">
+                  <a
+                    href={project.sharepointFolderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    📁 Open Project Folder in SharePoint →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -1816,7 +1828,7 @@ const ProjectDetail = () => {
                                             <tr className="text-xs">
                                               <td className="px-2 py-1"></td>
                                               <td
-                                                colSpan={4}
+                                                colSpan={5}
                                                 className="px-2 py-1 text-gray-700 bg-blue-50"
                                               >
                                                 <span className="font-medium text-gray-600">
@@ -1865,7 +1877,7 @@ const ProjectDetail = () => {
                                                   <td className="px-2 py-1 bg-blue-50"></td>
                                                 </>
                                               ) : (
-                                                <td colSpan={8}></td>
+                                                <td colSpan={7}></td>
                                               )}
                                             </tr>
                                             {itemReceipts.map((receipt) => (
@@ -1875,7 +1887,7 @@ const ProjectDetail = () => {
                                               >
                                                 <td className="px-2 py-1"></td>
                                                 <td
-                                                  colSpan={4}
+                                                  colSpan={5}
                                                   className="px-2 py-1 text-gray-700 bg-green-50"
                                                 >
                                                   <span className="font-medium text-gray-600">
@@ -1978,7 +1990,8 @@ const ProjectDetail = () => {
                                 <option value="">-</option>
                                 {products.map((p) => (
                                   <option key={p.id} value={p.id}>
-                                    {p.name}
+                                    {p.name}{" "}
+                                    {p.modelNumber ? `(${p.modelNumber})` : ""}
                                   </option>
                                 ))}
                               </select>

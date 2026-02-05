@@ -21,6 +21,11 @@ export interface Project {
   status?: "planning" | "in-progress" | "on-hold" | "completed";
   createdAt: string;
   updatedAt: string;
+  // SharePoint integration fields
+  sharepointFolderId?: string;
+  sharepointFolderUrl?: string;
+  sharepointDriveId?: string;
+  sharepointSiteId?: string;
 }
 
 export interface Category {
