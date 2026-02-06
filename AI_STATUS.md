@@ -169,6 +169,7 @@ This provides mutation capabilities (creating data) without the complexity of Ph
 Product detection is inconsistent due to simple substring matching logic. Buttons only appear when AI response contains the exact product name or model number.
 
 **Why it's inconsistent:**
+
 - Logic scans AI response text AFTER AI generates answer
 - Matches products by substring: `aiText.includes(product.modelNumber)` or `aiText.includes(product.name)`
 - AI must actually SAY the product name/model in its response to trigger button
@@ -176,12 +177,14 @@ Product detection is inconsistent due to simple substring matching logic. Button
 - Example success: User asks "Recommend towel ring" → AI says "I recommend Moen DN8408CH Towel Ring" → Button appears
 
 **Other issues:**
+
 - Suggests products already on the project (no deduplication)
 - Only shows first 3 matches (if many products match, some won't show)
 - Short product names (≤5 chars) ignored to avoid false matches
 - Simple substring can cause false positives ("Ring" matches "Bearing")
 
 **Potential improvements to consider:**
+
 - Filter out products already in project line items
 - Parse user question directly for product references (not just AI response)
 - Improve system prompt to encourage AI to echo model numbers
@@ -219,6 +222,33 @@ Product detection is inconsistent due to simple substring matching logic. Button
    - Displays action buttons to add products to project
    - Category selector for choosing destination
    - Creates line items automatically with full product data
+
+### 🔒 What Data the AI Can See (Project Chat Mode)
+
+**Current project ONLY** - completely isolated:
+- Project details (name, customer, address, status, dates, budget)
+- Categories for this project only (filtered by projectId)
+- Line items for this project only (via ProjectIdIndex)
+- Products/Vendors/Manufacturers referenced in THIS project's line items only
+- No access to other projects' data
+- No access to full product catalog (for chat context)
+
+**Why this matters:**
+- Fast performance (indexed queries on single project)
+- Privacy - each project's data is isolated
+- Predictable context size (500-2000 tokens per project)
+- AI can't accidentally reference data from wrong projects
+
+**Product catalog access:**
+- ALL products ARE scanned after AI responds (for action button detection only)
+- NOT sent to AI as context
+- Used only to match product names/model numbers in AI's response text
+- Enables action buttons without bloating AI context
+
+**Future enhancement (discussed Feb 6):**
+- Cross-project intelligence on-demand (see "Cross-Project Intelligence" in Next Steps)
+- Would allow: "Show me similar projects" or "What did we use in other bathrooms?"
+- Would still not impact page load times (runs only when explicitly asked)
 
 ### ❌ What It DOES NOT Have (Learning)
 
@@ -358,6 +388,29 @@ Show how it understands project data from DynamoDB:
 - Automatic Knowledge Base re-sync
 - Keep documents up-to-date
 - Estimated effort: 1 day
+
+**Cross-Project Intelligence** 🆕 DISCUSSED FEB 6
+
+- Enable AI to recommend based on similar projects
+- Use case: "Look at similar bathroom projects and suggest categories/products"
+- **NO impact on page load times** - runs on-demand when user asks
+- Architecture options:
+  - Simple filter-based: Query by project type + budget range (2-3 hours)
+  - Semantic search: Index project summaries in OpenSearch (1 day)
+  - Hybrid: Filter first, then semantic ranking (best performance)
+- Example flow:
+  1. User asks: "What categories do similar projects have?"
+  2. Backend finds 5-7 projects matching type/budget
+  3. Analyzes their categories and popular products
+  4. AI responds: "Based on 7 similar bathroom remodels: 100% had Fixtures, 85% had Tile..."
+  5. Action buttons appear for recommended products from those projects
+- Benefits:
+  - Learn from past successful projects
+  - Standardize category structures across similar work
+  - Discover products that worked well in comparable scenarios
+  - No manual searching through old projects
+- Performance: Fast (200-500ms query), targeted context (3-5 projects only), stays under token limits
+- Estimated effort: 2-4 hours for basic implementation, 1 day for semantic search version
 
 ### Long-Term (Future Enhancements)
 
