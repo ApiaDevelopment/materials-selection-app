@@ -141,6 +141,29 @@ exports.handler = async (event) => {
       const categoryId = path.split("/")[2];
       return await getLineItemsByCategory(categoryId);
     }
+    if (path.match(/^\/categories\/[^\/]+\/lineitems$/) && method === "POST") {
+      const categoryId = path.split("/")[2];
+      // Get category to find projectId
+      const categoryResult = await ddb.send(
+        new GetCommand({
+          TableName: CATEGORIES_TABLE,
+          Key: { id: categoryId },
+        }),
+      );
+      if (!categoryResult.Item) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: "Category not found" }),
+        };
+      }
+      const lineItemData = {
+        ...JSON.parse(event.body),
+        categoryId: categoryId,
+        projectId: categoryResult.Item.projectId,
+      };
+      return await createLineItem(lineItemData);
+    }
     if (path.match(/^\/projects\/[^\/]+\/lineitems$/) && method === "GET") {
       const projectId = path.split("/")[2];
       return await getLineItemsByProject(projectId);
@@ -713,7 +736,11 @@ async function createLineItem(data) {
   await ddb.send(
     new PutCommand({ TableName: LINEITEMS_TABLE, Item: lineItem }),
   );
-  return { statusCode: 201, headers, body: JSON.stringify(lineItem) };
+  return {
+    statusCode: 201,
+    headers,
+    body: JSON.stringify({ success: true, lineItem }),
+  };
 }
 
 async function updateLineItem(id, data) {
@@ -1427,6 +1454,82 @@ async function loadEntitiesById(tableName, ids) {
   return entityMap;
 }
 
+/**
+ * Extract product suggestions from AI response text
+ * Returns array of suggested actions for the UI
+ */
+function extractProductActions(
+  aiText,
+  products,
+  vendors,
+  manufacturers,
+  categories,
+) {
+  const actions = [];
+
+  // Find products mentioned in the AI response
+  // Check for product name or model number matches
+  products.forEach((product) => {
+    let mentioned = false;
+
+    // Check for model number (more specific)
+    if (
+      product.modelNumber &&
+      aiText.toLowerCase().includes(product.modelNumber.toLowerCase())
+    ) {
+      mentioned = true;
+    }
+
+    // Check for product name (broader match)
+    if (
+      !mentioned &&
+      product.name &&
+      product.name.length > 5 && // Avoid matching very short names
+      aiText.toLowerCase().includes(product.name.toLowerCase())
+    ) {
+      mentioned = true;
+    }
+
+    if (mentioned) {
+      // Find the vendor for this product
+      const vendor = vendors.find((v) => v.id === product.vendorId);
+
+      // Find the manufacturer
+      const manufacturer = manufacturers.find(
+        (m) => m.id === product.manufacturerId,
+      );
+
+      // Create action suggestion
+      const actionLabel = `Add ${product.name}`;
+      const vendorInfo = vendor ? ` from ${vendor.name}` : "";
+      const priceInfo = product.unitCost > 0 ? ` ($${product.unitCost})` : "";
+
+      actions.push({
+        type: "addLineItem",
+        label: actionLabel,
+        helpText: `Add to project${vendorInfo}${priceInfo}`,
+        data: {
+          productId: product.id,
+          productName: product.name,
+          modelNumber: product.modelNumber,
+          vendorId: vendor?.id,
+          vendorName: vendor?.name,
+          manufacturerId: product.manufacturerId,
+          manufacturerName: manufacturer?.name,
+          unitCost: product.unitCost || 0,
+          quantity: 1,
+          unit: product.unit || "ea",
+          material: product.description || "",
+          // categoryId will be selected by user
+        },
+      });
+    }
+  });
+
+  // Limit to top 3 suggestions to avoid overwhelming UI
+  return actions.slice(0, 3);
+}
+
 async function chatWithProject(projectId, conversationMessages) {
   try {
     // Load project from DynamoDB
@@ -1585,11 +1688,53 @@ async function chatWithProject(projectId, conversationMessages) {
 
     const projectContext = contextParts.join("\n");
 
+    // Load all products and vendors for action suggestions
+    let allProducts = [];
+    let allVendors = [];
+    let allProductVendors = [];
+    try {
+      const [productsResult, vendorsResult, productVendorsResult] =
+        await Promise.all([
+          ddb.send(new ScanCommand({ TableName: PRODUCTS_TABLE })),
+          ddb.send(new ScanCommand({ TableName: VENDORS_TABLE })),
+          ddb.send(new ScanCommand({ TableName: PRODUCTVENDORS_TABLE })),
+        ]);
+
+      allProducts = productsResult.Items || [];
+      allVendors = vendorsResult.Items || [];
+      allProductVendors = productVendorsResult.Items || [];
+
+      // Enrich products with primary vendor info
+      allProducts = allProducts.map((product) => {
+        const primaryPV = allProductVendors.find(
+          (pv) => pv.productId === product.id && pv.isPrimary === true,
+        );
+        if (primaryPV) {
+          return {
+            ...product,
+            vendorId: primaryPV.vendorId,
+            unitCost: primaryPV.cost,
+          };
+        }
+        return product;
+      });
+    } catch (error) {
+      console.warn("Failed to load all products/vendors:", error);
+    }
+
     // Build system message for Amazon Nova
     const systemMessage = `You are a construction materials expert assistant helping with the project "${project.name || "this construction project"}".
 
 Project Details:
 ${projectContext}
+
+When recommending products, please include specific details like:
+- Product name and model number
+- Manufacturer name
+- Vendor name
+- Approximate price
+
+Format product recommendations clearly so they can be easily identified.
 
 Provide helpful, accurate advice about this construction project. Use the project details to give contextual, specific answers. If asked about project specifics, refer to the actual data provided.`;
 
@@ -1634,15 +1779,26 @@ Provide helpful, accurate advice about this construction project. Use the projec
 
     const response = await bedrockClient.send(command);
     const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+    const aiResponseText = responseBody.output.message.content[0].text;
+
+    // Extract product suggestions from AI response
+    const suggestedActions = extractProductActions(
+      aiResponseText,
+      allProducts,
+      allVendors,
+      Array.from(manufacturersMap.values()),
+      categories,
+    );
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        response: responseBody.output.message.content[0].text,
+        response: aiResponseText,
         projectName: project.name,
         model: "us.amazon.nova-micro-v1:0",
+        suggestedActions,
       }),
     };
   } catch (error) {

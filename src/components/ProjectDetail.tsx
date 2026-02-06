@@ -1,28 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  categoryService,
-  lineItemService,
-  manufacturerService,
-  orderService,
-  productService,
-  productVendorService,
-  projectService,
-  vendorService,
+    categoryService,
+    lineItemService,
+    manufacturerService,
+    orderService,
+    productService,
+    productVendorService,
+    projectService,
+    vendorService,
 } from "../services";
 import type {
-  Category,
-  CreateCategoryRequest,
-  CreateLineItemRequest,
-  LineItem,
-  Manufacturer,
-  Order,
-  OrderItem,
-  Product,
-  ProductVendor,
-  Project,
-  Receipt,
-  Vendor,
+    Category,
+    CreateCategoryRequest,
+    CreateLineItemRequest,
+    LineItem,
+    Manufacturer,
+    Order,
+    OrderItem,
+    Product,
+    ProductVendor,
+    Project,
+    Receipt,
+    Vendor,
 } from "../types";
 import { ChatAssistant } from "./ChatAssistant";
 import DocumentManager from "./DocumentManager";
@@ -4345,7 +4345,13 @@ const ProjectDetail = () => {
 
       {/* AI Chat Assistant */}
       {project && project.id && (
-        <ChatAssistant projectId={project.id} projectName={project.name} />
+        <ChatAssistant
+          projectId={project.id}
+          projectName={project.name}
+          onLineItemAdded={(lineItem) =>
+            setLineItems((prev) => [...prev, lineItem])
+          }
+        />
       )}
     </div>
   );

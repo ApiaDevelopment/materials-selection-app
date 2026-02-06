@@ -8,11 +8,31 @@ interface Citation {
   }[];
 }
 
+interface SuggestedAction {
+  type: string;
+  label: string;
+  helpText?: string;
+  data: {
+    productId: string;
+    productName: string;
+    modelNumber?: string;
+    vendorId?: string;
+    vendorName?: string;
+    manufacturerId?: string;
+    manufacturerName?: string;
+    unitCost: number;
+    quantity: number;
+    unit: string;
+    material?: string;
+  };
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   citations?: Citation[];
+  suggestedActions?: SuggestedAction[];
 }
 
 type ChatMode = "project" | "documents";
@@ -20,15 +40,44 @@ type ChatMode = "project" | "documents";
 interface ChatAssistantProps {
   projectId: string;
   projectName?: string;
+  onLineItemAdded?: (lineItem: any) => void;
 }
 
-export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
+export function ChatAssistant({
+  projectId,
+  projectName,
+  onLineItemAdded,
+}: ChatAssistantProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>("project");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [showCategorySelector, setShowCategorySelector] = useState(false);
+  const [pendingAction, setPendingAction] = useState<SuggestedAction | null>(
+    null,
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch categories when component mounts
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(
+          `https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod/projects/${projectId}/categories`,
+        );
+        const data = await response.json();
+        // API returns array directly, not wrapped in {success, categories}
+        if (Array.isArray(data)) {
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
+  }, [projectId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,6 +127,7 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
             role: "assistant",
             content: data.response,
             timestamp: new Date(),
+            suggestedActions: data.suggestedActions || [],
           };
           setMessages((prev) => [...prev, aiMessage]);
         } else {
@@ -129,6 +179,74 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
     }
   };
 
+  const handleAction = async (action: SuggestedAction) => {
+    if (action.type === "addLineItem") {
+      // Show category selector
+      setPendingAction(action);
+      setShowCategorySelector(true);
+    }
+  };
+
+  const handleCategorySelect = async (categoryId: string) => {
+    if (!pendingAction) return;
+
+    setShowCategorySelector(false);
+
+    try {
+      const response = await fetch(
+        `https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod/categories/${categoryId}/lineitems`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: pendingAction.data.productName,
+            productId: pendingAction.data.productId,
+            modelNumber: pendingAction.data.modelNumber,
+            vendorId: pendingAction.data.vendorId,
+            manufacturerId: pendingAction.data.manufacturerId,
+            material: pendingAction.data.material,
+            quantity: pendingAction.data.quantity,
+            unit: pendingAction.data.unit,
+            unitCost: pendingAction.data.unitCost,
+            totalCost:
+              pendingAction.data.unitCost * pendingAction.data.quantity,
+            status: "pending",
+            notes: "Added via AI assistant",
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        const categoryName =
+          categories.find((c) => c.id === categoryId)?.name || "category";
+        const successMessage: Message = {
+          role: "assistant",
+          content: `✅ Added ${pendingAction.data.productName} to ${categoryName}`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, successMessage]);
+
+        // Notify parent to add the new line item to state
+        if (onLineItemAdded && data.lineItem) {
+          onLineItemAdded(data.lineItem);
+        }
+      } else {
+        throw new Error(data.error || "Failed to add line item");
+      }
+    } catch (error) {
+      const errorMessage: Message = {
+        role: "assistant",
+        content: `❌ Failed to add item: ${error instanceof Error ? error.message : "Unknown error"}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {/* Chat Window */}
@@ -137,7 +255,9 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
           {/* Header */}
           <div className="bg-blue-600 text-white px-3 py-2 rounded-t-lg flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="text-lg">{mode === "project" ? "💬" : "📄"}</span>
+              <span className="text-lg">
+                {mode === "project" ? "💬" : "📄"}
+              </span>
               <div>
                 <h3 className="font-semibold text-sm">
                   {mode === "project" ? "Project Assistant" : "Document Search"}
@@ -149,7 +269,8 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-blue-700 rounded px-2 py-1 text-sm">
+              className="text-white hover:bg-blue-700 rounded px-2 py-1 text-sm"
+            >
               ✕
             </button>
           </div>
@@ -191,7 +312,9 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
             {messages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <p className="text-sm">
-                  {mode === "project" ? "Hi! I'm your AI assistant." : "Search project documents"}
+                  {mode === "project"
+                    ? "Hi! I'm your AI assistant."
+                    : "Search project documents"}
                 </p>
                 <p className="text-xs mt-2">
                   {mode === "project"
@@ -213,7 +336,35 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{msg.content}</p>
-                    
+
+                    {/* Suggested Actions */}
+                    {msg.suggestedActions &&
+                      msg.suggestedActions.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
+                          <p className="text-xs font-semibold text-gray-600">
+                            Suggested Actions:
+                          </p>
+                          {msg.suggestedActions.map((action, actIdx) => (
+                            <button
+                              key={actIdx}
+                              onClick={() => handleAction(action)}
+                              className="w-full px-2 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 
+                                       text-blue-700 rounded border border-blue-200 
+                                       transition-colors text-left flex flex-col"
+                            >
+                              <span className="font-medium">
+                                {action.label}
+                              </span>
+                              {action.helpText && (
+                                <span className="text-blue-600 mt-0.5">
+                                  {action.helpText}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                     {/* Citations */}
                     {msg.citations && msg.citations.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
@@ -221,17 +372,20 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
                           Sources:
                         </p>
                         {msg.citations.map((citation, citIdx) => (
-                          <div key={citIdx} className="text-xs text-gray-500 mb-1">
+                          <div
+                            key={citIdx}
+                            className="text-xs text-gray-500 mb-1"
+                          >
                             {citation.sources.map((source, srcIdx) => (
                               <div key={srcIdx} className="truncate">
-                                • {source.location.split('/').pop()}
+                                • {source.location.split("/").pop()}
                               </div>
                             ))}
                           </div>
                         ))}
                       </div>
                     )}
-                    
+
                     <p
                       className={`text-xs mt-1 ${
                         msg.role === "user" ? "text-blue-100" : "text-gray-400"
@@ -291,6 +445,51 @@ export function ChatAssistant({ projectId, projectName }: ChatAssistantProps) {
                 className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
                 {mode === "project" ? "Send" : "Search"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Selector Modal */}
+      {showCategorySelector && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-md">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              Select Category
+            </h3>
+            <p className="text-xs text-gray-600 mb-3">
+              Where would you like to add{" "}
+              <span className="font-medium">
+                {pendingAction?.data.productName}
+              </span>
+              ?
+            </p>
+            <div className="space-y-1 max-h-60 overflow-y-auto">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.id)}
+                  className="w-full text-left px-2 py-1.5 text-xs hover:bg-purple-50 rounded border border-gray-200 hover:border-purple-300 transition-colors"
+                >
+                  <div className="font-medium">
+                    {cat.categoryName || cat.name}
+                  </div>
+                  <div className="text-gray-500">
+                    Allowance: ${(cat.allowance || 0).toLocaleString()}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={() => {
+                  setShowCategorySelector(false);
+                  setPendingAction(null);
+                }}
+                className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
+              >
+                Cancel
               </button>
             </div>
           </div>

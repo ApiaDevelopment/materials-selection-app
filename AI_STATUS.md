@@ -1,7 +1,7 @@
 # AI Implementation Status - Materials Selection App
 
-**Last Updated:** February 5, 2026  
-**Status:** Phase 2 Complete - Ready for Client Demo  
+**Last Updated:** February 6, 2026  
+**Status:** Phase 2.5 Complete - Action Buttons Implemented  
 **Production URL:** https://mpmaterials.apiaconsulting.com
 
 ---
@@ -9,10 +9,12 @@
 ## What We Built
 
 ### Phase 1: AI Chat Assistant ✅ COMPLETE
+
 **Completed:** Earlier today  
 **Commit:** 3a10409 - "Add AI chat assistant with Amazon Bedrock integration"
 
 **Features:**
+
 - Amazon Bedrock with Nova Micro model (us.amazon.nova-micro-v1:0)
 - Conversational memory within a single chat session
 - Full project context loading from DynamoDB:
@@ -23,6 +25,7 @@
 - CORS configured for browser requests
 
 **Key Technical Details:**
+
 - Lambda function with @aws-sdk/client-bedrock-runtime
 - Conversation history passed with each request for context
 - Field mappings: `allowance` (not budget), `name` (not categoryName)
@@ -31,11 +34,13 @@
 ---
 
 ### Phase 2: RAG with Knowledge Bases ✅ COMPLETE
+
 **Completed:** Today (evening)  
 **Backend Commit:** 789c709 - "Add Knowledge Base RAG integration with Amazon Bedrock"  
 **Frontend Commit:** 9af56fb - "Add dual-mode chat: Project Assistant + Document Search"
 
 **Infrastructure:**
+
 - **Knowledge Base ID:** WWMDUQTZJZ
 - **S3 Bucket:** materials-kb-documents-634752426026
 - **Vector Store:** Amazon OpenSearch Serverless (auto-created)
@@ -44,6 +49,7 @@
 - **Test Document:** test-projects/kitchen-project-spec.txt (556 lines)
 
 **Features:**
+
 - Document retrieval with semantic search (not just keyword matching)
 - Citation support showing source documents and S3 locations
 - RetrieveAndGenerate API integration
@@ -51,12 +57,14 @@
 - Endpoint: `POST /ai/docs`
 
 **Lambda Integration:**
+
 - Added @aws-sdk/client-bedrock-agent-runtime SDK
 - `queryKnowledgeBase(question)` function with citation extraction
 - IAM permissions: bedrock:Retrieve, bedrock:RetrieveAndGenerate
 - API Gateway route: /ai/docs with CORS
 
 **UI Integration:**
+
 - Mode toggle in ChatAssistant component
 - Project Chat mode: Queries DynamoDB data via /ai/chat
 - Document Search mode: Queries Knowledge Base via /ai/docs
@@ -65,6 +73,7 @@
 - Mode-specific icons (💬 vs 📄), placeholders, and button text
 
 **Test Query Example:**
+
 ```json
 POST /ai/docs
 {
@@ -92,9 +101,74 @@ Response:
 
 ---
 
+### Phase 2.5: AI Action Buttons ✅ COMPLETE
+
+**Completed:** February 6, 2026  
+**Commit:** (Pending) - "Add AI action buttons for product recommendations"
+
+**Problem Solved:**
+
+AI could recommend products but couldn't help users add them to projects. Users had to manually search for the product and create line items themselves.
+
+**Solution:**
+
+Action buttons that appear on AI responses when products are mentioned. Click a button → select category → line item created automatically.
+
+**Features:**
+
+- **Smart Product Detection:** Backend parses AI responses for product mentions
+- **Suggested Actions:** Returns structured action data with each response
+- **Action Buttons UI:** Displays clickable buttons below AI messages
+- **Category Selector:** Modal to choose which category for the line item
+- **Success Feedback:** Confirmation messages in chat after successful creation
+- **Complete Product Data:** Includes vendor, manufacturer, pricing, quantities
+
+**Technical Implementation:**
+
+**Backend Changes (lambda/index.js):**
+
+- Added `extractProductActions()` function to detect products in AI text
+- Loads all products and vendors for matching against AI responses
+- Enhanced system prompt to encourage detailed product recommendations
+- Returns `suggestedActions` array in API response with:
+  - Action type, label, help text
+  - Product ID, name, model number
+  - Vendor and manufacturer details
+  - Pricing and quantity defaults
+- Matches on model number (specific) or product name (broader)
+- Limits to top 3 suggestions to avoid UI clutter
+
+**Frontend Changes (ChatAssistant.tsx):**
+
+- Added `SuggestedAction` interface for type safety
+- Fetches categories on component mount
+- Displays action buttons below messages when `suggestedActions` present
+- Category selector modal for user to choose destination
+- `handleAction()` and `handleCategorySelect()` for button interactions
+- Calls existing `POST /categories/{categoryId}/lineitems` endpoint
+- Shows success/error feedback as assistant messages
+
+**User Flow Example:**
+
+1. User: "What faucet should I use for this bathroom?"
+2. AI: "I recommend the Kohler K-596-VS Simplified..."
+3. Button appears: "Add Kohler K-596-VS" with vendor/price info
+4. User clicks button
+5. Modal shows: "Select Category" with all project categories
+6. User selects "Fixtures"
+7. Line item created with product, vendor, manufacturer, pricing
+8. Chat shows: "✅ Added Kohler K-596-VS to Fixtures"
+
+**Alternative to Bedrock Agents:**
+
+This provides mutation capabilities (creating data) without the complexity of Phase 3 Agents. Users get explicit control via button clicks instead of natural language commands like "add that to fixtures." Can upgrade to full agents later if valuable.
+
+---
+
 ## Current AI Capabilities
 
 ### ✅ What It HAS
+
 1. **In-session conversational memory** (Project Chat mode)
    - Remembers context within a single chat session
    - Conversation history maintained while chat window is open
@@ -113,6 +187,12 @@ Response:
    - Loads all related data from DynamoDB
    - Understands relationships between entities
    - Can answer complex queries about project state
+
+5. **AI-suggested actions with one-click execution** (NEW Feb 6)
+   - Detects product recommendations in AI responses
+   - Displays action buttons to add products to project
+   - Category selector for choosing destination
+   - Creates line items automatically with full product data
 
 ### ❌ What It DOES NOT Have (Learning)
 
@@ -146,12 +226,15 @@ Response:
 ## How to Demo Tomorrow
 
 ### Opening the Chat
+
 1. Navigate to https://mpmaterials.apiaconsulting.com
 2. Open any project (e.g., "SP Test 1")
 3. Click the blue chat bubble (💬) in the bottom-right corner
 
 ### Demo Project Chat Mode
+
 Show how it understands project data from DynamoDB:
+
 - "What's the total budget for this project?"
 - "Which vendors are we using?"
 - "Show me all the line items"
@@ -159,6 +242,7 @@ Show how it understands project data from DynamoDB:
 - Follow-up: "And what's the allowance for each?"
 
 ### Demo Document Search Mode
+
 1. Click "Documents" tab in the chat header
 2. Show semantic search with citations:
    - "What type of countertops are specified?"
@@ -167,9 +251,32 @@ Show how it understands project data from DynamoDB:
    - "What's the project budget?" (shows it finds $1,000 from document)
 
 ### Show Citations
+
 - Point out the "Sources:" section in document answers
 - Show the filename: kitchen-project-spec.txt
 - Explain this proves the AI is using actual documents
+
+### Demo Action Buttons (NEW - Feb 6)
+
+1. Stay in Project Chat mode
+2. Ask: "What faucet should I use for the bathroom?"
+3. AI will recommend a specific product (e.g., Kohler model)
+4. **Action button appears** below the message: "Add [Product Name]"
+5. Shows vendor and price in help text
+6. Click the button
+7. **Category selector modal** appears
+8. Select "Fixtures" (or appropriate category)
+9. **Success message** appears: "✅ Added [Product] to Fixtures"
+10. Navigate to category to verify line item was created
+11. Show product details (vendor, manufacturer, pricing all populated)
+
+**Key Points to Highlight:**
+
+- AI detects product mentions automatically
+- One-click to add recommended products
+- No typing commands like "add that to fixtures"
+- Explicit user control (must click button)
+- Complete product data flows through
 
 ---
 
@@ -178,6 +285,7 @@ Show how it understands project data from DynamoDB:
 ### Immediate (If Demo Goes Well)
 
 **Option 1: Add Conversation Persistence** ⭐ RECOMMENDED FIRST
+
 - Create DynamoDB table: MaterialsSelection-ChatHistory
 - Save conversations per project
 - Load previous conversations when reopening chat
@@ -185,12 +293,14 @@ Show how it understands project data from DynamoDB:
 - Estimated effort: 2-3 hours
 
 **Option 2: Use Knowledge Base Sessions**
+
 - Pass sessionId for follow-up questions in Document Search mode
 - Build context across multiple document queries
 - Enable conversational document search
 - Estimated effort: 1 hour
 
 **Option 3: Add Real Project Documents**
+
 - Export SharePoint files for actual projects
 - Upload to S3 bucket (materials-kb-documents-634752426026)
 - Re-sync Knowledge Base
@@ -200,6 +310,7 @@ Show how it understands project data from DynamoDB:
 ### Medium-Term (Next 1-2 Weeks)
 
 **Phase 3: Bedrock Agents** (from AI_INTEGRATION_PLAN.md)
+
 - Autonomous task execution
 - Action groups for mutations (create/update data)
 - Multi-step reasoning
@@ -207,6 +318,7 @@ Show how it understands project data from DynamoDB:
 - Estimated effort: 1 week
 
 **Add Feedback Collection**
+
 - Thumbs up/down on responses
 - Track helpful vs unhelpful answers
 - Store feedback in DynamoDB
@@ -214,6 +326,7 @@ Show how it understands project data from DynamoDB:
 - Estimated effort: 3-4 hours
 
 **Automatic SharePoint→S3 Sync**
+
 - Lambda trigger on SharePoint file changes
 - Automatic upload to S3
 - Automatic Knowledge Base re-sync
@@ -223,22 +336,26 @@ Show how it understands project data from DynamoDB:
 ### Long-Term (Future Enhancements)
 
 **Advanced RAG Features**
+
 - Multiple Knowledge Bases (one per project type?)
 - Custom chunking strategies for better retrieval
 - Hybrid search (semantic + keyword)
 - Re-ranking retrieved passages
 
 **Multi-modal Capabilities**
+
 - Image analysis (plans, drawings, photos)
 - PDF parsing and understanding
 - Structured data extraction from documents
 
 **Custom Model Training**
+
 - Fine-tune on your specific domain
 - Train on past successful projects
 - Industry-specific terminology
 
 **Advanced Agent Capabilities**
+
 - Schedule coordination
 - Budget optimization
 - Vendor recommendation based on history
@@ -249,6 +366,7 @@ Show how it understands project data from DynamoDB:
 ## Technical Architecture
 
 ### AWS Services Used
+
 - **Lambda:** MaterialsSelection-API (Node.js 20.x)
 - **API Gateway:** xrld1hq3e2 (REST API, prod stage)
 - **DynamoDB:** 5 tables (Projects, Categories, LineItems, Vendors, Manufacturers)
@@ -260,6 +378,7 @@ Show how it understands project data from DynamoDB:
 - **SharePoint:** Project file storage integration
 
 ### API Endpoints
+
 ```
 Base URL: https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod
 
@@ -269,6 +388,7 @@ POST /ai/docs - Search documents (Knowledge Base)
 ```
 
 ### Lambda Dependencies
+
 ```json
 {
   "@aws-sdk/client-dynamodb": "^3.x",
@@ -281,6 +401,7 @@ POST /ai/docs - Search documents (Knowledge Base)
 ```
 
 ### Frontend Stack
+
 - React + TypeScript
 - Vite build system
 - TailwindCSS for styling
@@ -319,6 +440,7 @@ POST /ai/docs - Search documents (Knowledge Base)
 ## Cost Considerations
 
 **Current Usage:**
+
 - Nova Micro: ~$0.00015 per 1K input tokens, ~$0.00060 per 1K output tokens
 - Knowledge Base: Pay per retrieval query
 - OpenSearch Serverless: ~$700/month minimum (OCU-based)
@@ -326,6 +448,7 @@ POST /ai/docs - Search documents (Knowledge Base)
   - May want to consider switching to Aurora/Neptune for production
 
 **Optimization Options:**
+
 - Use smaller context windows
 - Cache common queries
 - Batch document uploads
@@ -336,17 +459,21 @@ POST /ai/docs - Search documents (Knowledge Base)
 ## Files Modified Today
 
 ### Backend
+
 - `lambda/index.js` - Added queryKnowledgeBase(), /ai/docs route
 - `lambda/package.json` - Added bedrock-agent-runtime SDK
 - `lambda/package-lock.json` - Dependency updates
 
 ### Frontend
+
 - `src/components/ChatAssistant.tsx` - Added dual-mode UI with citations
 
 ### Test Data
+
 - `test-docs/kitchen-project-spec.txt` - Sample document for testing
 
 ### Documentation
+
 - This file (AI_STATUS.md)
 
 ---
@@ -365,30 +492,47 @@ POST /ai/docs - Search documents (Knowledge Base)
    - Phase 2 UI
    - 137 insertions, 37 deletions
 
+4. **(Pending)** - "Add AI action buttons for product recommendations"
+   - Phase 2.5 complete
+   - Backend: Product detection, suggestedActions in response
+   - Frontend: Action buttons UI, category selector modal
+   - Enables one-click product addition from AI recommendations
+   - Frontend deployed to S3/CloudFront (Feb 6)
+   - Lambda: Awaiting manual .zip upload
+
 ---
 
 ## Where We Left Off
 
 ✅ **Completed:**
+
 - Phase 1: AI Chat Assistant with conversational memory
 - Phase 2: RAG with Knowledge Bases for document search
-- UI integration with dual-mode chat
-- All code deployed to production
-- All changes committed to GitHub
+- Phase 2.5: AI Action Buttons for product recommendations (Feb 6)
+- UI integration with dual-mode chat and action buttons
+- Frontend deployed to production (S3 + CloudFront)
+- Backend changes ready (awaiting Lambda .zip upload)
 
-🎯 **Ready for Tomorrow:**
-- Client demo at https://mpmaterials.apiaconsulting.com
-- Both AI modes functional and tested
-- Citations working correctly
-- Test document successfully retrieving answers
+⏳ **Pending:**
 
-📋 **Next Session Should Start With:**
-1. Discuss how client demo went
-2. Decide on next priority:
-   - Option A: Add conversation persistence (save chat history)
-   - Option B: Upload real project documents to Knowledge Base
-   - Option C: Add Knowledge Base session continuity
-   - Option D: Move to Phase 3 (Bedrock Agents)
+- Deploy Lambda function (manual .zip upload due to PowerShell path limits)
+- Test action buttons end-to-end in production
+- Commit changes to Git after successful deployment
+
+🎯 **Ready to Use:**
+
+- AI product recommendations with one-click addition
+- Category selector for line item placement
+- Success/error feedback in chat
+- Full product data (vendor, manufacturer, pricing)
+
+📋 **Next Session Could Add:**
+
+1. **Conversation persistence** - Save chat history to DynamoDB
+2. **Real project documents** - Upload SharePoint files to Knowledge Base
+3. **Enhanced product matching** - Improve detection logic, handle more patterns
+4. **Action button improvements** - Support multiple actions, edit before adding
+5. **Phase 3: Bedrock Agents** - Full natural language commands
 
 ---
 
@@ -412,6 +556,7 @@ POST /ai/docs - Search documents (Knowledge Base)
 ## Quick Reference Commands
 
 ### Deploy Lambda
+
 ```powershell
 cd g:\Projects\MegaPros\MaterialsSelectionApp\WebPrototype\lambda
 Remove-Item lambda-deploy.zip -ErrorAction SilentlyContinue
@@ -420,6 +565,7 @@ Compress-Archive -Path index.js,sharepointService.js,package.json,package-lock.j
 ```
 
 ### Deploy Frontend
+
 ```powershell
 cd G:\Projects\MegaPros\MaterialsSelectionApp\WebPrototype
 npm run build
@@ -428,18 +574,20 @@ aws cloudfront create-invalidation --distribution-id E2CO2DGE8F4YUE --paths "/*"
 ```
 
 ### Test Knowledge Base
+
 ```powershell
-$body = '{"question":"What type of countertops are specified?"}' 
+$body = '{"question":"What type of countertops are specified?"}'
 Invoke-WebRequest -Uri "https://xrld1hq3e2.execute-api.us-east-1.amazonaws.com/prod/ai/docs" -Method POST -Headers @{"Content-Type"="application/json"} -Body $body
 ```
 
 ### Check Logs
+
 ```powershell
 aws logs tail /aws/lambda/MaterialsSelection-API --since 5m
 ```
 
 ---
 
-**End of Session: February 5, 2026**  
-**Everything committed, deployed, and ready for demo.**  
-**Good luck with your client meeting tomorrow! 🚀**
+**End of Session: February 6, 2026**  
+**Action buttons implemented - Frontend deployed, Lambda pending manual upload.**  
+**New capability: AI can now help users add products to projects with one click! 🚀**
