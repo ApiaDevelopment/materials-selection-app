@@ -164,6 +164,31 @@ Action buttons that appear on AI responses when products are mentioned. Click a 
 
 This provides mutation capabilities (creating data) without the complexity of Phase 3 Agents. Users get explicit control via button clicks instead of natural language commands like "add that to fixtures." Can upgrade to full agents later if valuable.
 
+**Known Issues with Action Buttons (Feb 6 discussion):**
+
+Product detection is inconsistent due to simple substring matching logic. Buttons only appear when AI response contains the exact product name or model number.
+
+**Why it's inconsistent:**
+- Logic scans AI response text AFTER AI generates answer
+- Matches products by substring: `aiText.includes(product.modelNumber)` or `aiText.includes(product.name)`
+- AI must actually SAY the product name/model in its response to trigger button
+- Example failure: User asks "Add K-596-VS" → AI says "I'll help you add that faucet" → No button (AI didn't echo model number)
+- Example success: User asks "Recommend towel ring" → AI says "I recommend Moen DN8408CH Towel Ring" → Button appears
+
+**Other issues:**
+- Suggests products already on the project (no deduplication)
+- Only shows first 3 matches (if many products match, some won't show)
+- Short product names (≤5 chars) ignored to avoid false matches
+- Simple substring can cause false positives ("Ring" matches "Bearing")
+
+**Potential improvements to consider:**
+- Filter out products already in project line items
+- Parse user question directly for product references (not just AI response)
+- Improve system prompt to encourage AI to echo model numbers
+- Use word boundaries/regex for better matching
+- Increase limit beyond 3 suggestions
+- Add deduplication logic
+
 ---
 
 ## Current AI Capabilities
