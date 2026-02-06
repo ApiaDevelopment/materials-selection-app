@@ -2,7 +2,8 @@
 
 **Last Updated:** February 6, 2026  
 **Status:** Phase 2.5 Complete - Action Buttons Implemented  
-**Production URL:** https://mpmaterials.apiaconsulting.com
+**Production URL:** https://mpmaterials.apiaconsulting.com  
+**Verified Costs:** Feb 6, 2026 - OpenSearch Serverless ~$0.30/month (not $700 - Bedrock optimizes with standby replicas disabled)
 
 ---
 
@@ -442,17 +443,23 @@ POST /ai/docs - Search documents (Knowledge Base)
 **Current Usage:**
 
 - Nova Micro: ~$0.00015 per 1K input tokens, ~$0.00060 per 1K output tokens
-- Knowledge Base: Pay per retrieval query
-- OpenSearch Serverless: ~$700/month minimum (OCU-based)
-  - ⚠️ **This is the biggest cost driver**
-  - May want to consider switching to Aurora/Neptune for production
+- Knowledge Base: Pay per retrieval query (~$0.01 per query)
+- OpenSearch Serverless: **~$0.30/month** (usage-based, standby replicas disabled)
+  - ✅ **Bedrock-managed collections are cost-optimized**
+  - Self-managed OSS would cost ~$700/month with high-availability
+  - Current actual cost: <$0.01/day based on Feb 1-6 billing
+  - Scales with data volume, not fixed OCU allocation
+
+**Why It's So Cheap:**
+
+Bedrock automatically creates OpenSearch Serverless collections with `standbyReplicas: DISABLED`, which eliminates the 4-OCU minimum that drives costs to $700/month. Instead, it uses usage-based pricing optimized for small datasets.
 
 **Optimization Options:**
 
 - Use smaller context windows
 - Cache common queries
 - Batch document uploads
-- Consider vector store alternatives (Aurora Serverless, Neptune)
+- Monitor costs as data volume increases
 
 ---
 
@@ -545,7 +552,7 @@ POST /ai/docs - Search documents (Knowledge Base)
    - Adding real documents?
    - Building autonomous agents?
 
-3. **Budget concerns?** OpenSearch Serverless costs ~$700/month. Consider alternatives?
+3. **Budget OK?** Current costs are minimal (~$0.30/month for OSS + pennies for Bedrock queries). Will scale with usage.
 
 4. **Authentication needed?** Should we add Cognito or API keys?
 
