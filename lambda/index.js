@@ -729,7 +729,7 @@ async function createLineItem(data) {
     receivedDate: data.receivedDate || null,
     stagingLocation: data.stagingLocation || null,
     returnNotes: data.returnNotes || null,
-    status: data.status || "pending",
+    status: data.status || (data.productId ? "selected" : "pending"),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

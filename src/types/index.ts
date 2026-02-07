@@ -94,7 +94,13 @@ export interface LineItem {
   receivedDate?: string;
   stagingLocation?: string;
   returnNotes?: string;
-  status?: "pending" | "ordered" | "received" | "part recvd" | "installed";
+  status?:
+    | "pending"
+    | "selected"
+    | "ordered"
+    | "received"
+    | "part recvd"
+    | "installed";
   createdAt: string;
   updatedAt: string;
 }
@@ -174,7 +180,13 @@ export interface CreateLineItemRequest {
   receivedDate?: string;
   stagingLocation?: string;
   returnNotes?: string;
-  status?: "pending" | "ordered" | "received" | "part recvd" | "installed";
+  status?:
+    | "pending"
+    | "selected"
+    | "ordered"
+    | "received"
+    | "part recvd"
+    | "installed";
 }
 
 export interface UpdateLineItemRequest {
@@ -193,7 +205,13 @@ export interface UpdateLineItemRequest {
   receivedDate?: string;
   stagingLocation?: string;
   returnNotes?: string;
-  status?: "pending" | "ordered" | "received" | "part recvd" | "installed";
+  status?:
+    | "pending"
+    | "selected"
+    | "ordered"
+    | "received"
+    | "part recvd"
+    | "installed";
 }
 
 export interface CreateVendorRequest {

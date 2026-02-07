@@ -109,13 +109,15 @@ const ProjectDetail = () => {
     projectId: id || "",
     name: "",
     material: "",
-    quantity: 0,
+    quantity: 1,
     unit: "",
     unitCost: 0,
     notes: "",
     status: "pending",
   });
   const [showInsertProductModal, setShowInsertProductModal] = useState(false);
+  const [selectingForLineItem, setSelectingForLineItem] =
+    useState<LineItem | null>(null);
   const [productVendors, setProductVendors] = useState<ProductVendor[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVendorId, setFilterVendorId] = useState<string>("");
@@ -277,8 +279,8 @@ const ProjectDetail = () => {
   };
 
   const handleAddLineItem = async (categoryId: string) => {
-    if (!newItem.name || !newItem.material) {
-      alert("Please fill in item name and material");
+    if (!newItem.name) {
+      alert("Please fill in item name");
       return;
     }
 
@@ -295,7 +297,7 @@ const ProjectDetail = () => {
         projectId: id || "",
         name: "",
         material: "",
-        quantity: 0,
+        quantity: 1,
         unit: "",
         unitCost: 0,
         notes: "",
@@ -366,6 +368,200 @@ const ProjectDetail = () => {
       alert("Failed to update line item");
       console.error("Error updating line item:", err);
     }
+  };
+
+  // =============================================================================
+  // INLINE EDIT: VENDOR / MANUFACTURER / PRODUCT COORDINATION LOGIC
+  // =============================================================================
+  /**
+   * Same cascading logic as Add Item, but for inline editing.
+   * Only active when status is "pending" or "selected".
+   * See detailed comments in Add Item section above for full explanation.
+   */
+
+  const handleEditItemVendorChange = async (vendorId: string) => {
+    if (!editingItem) return;
+    const vendor = vendorId || undefined;
+    setEditingItem({ ...editingItem, vendorId: vendor });
+
+    if (vendorId && editingItem.productId) {
+      setProducts(allProducts);
+      return;
+    }
+
+    if (vendorId) {
+      const vendorProductIds = productVendors
+        .filter((pv: ProductVendor) => pv.vendorId === vendorId)
+        .map((pv: ProductVendor) => pv.productId);
+
+      const allProductsList = await productService.getAllProducts();
+      let filtered = allProductsList.filter((p) =>
+        vendorProductIds.includes(p.id),
+      );
+
+      if (editingItem.manufacturerId) {
+        filtered = filtered.filter(
+          (p) => p.manufacturerId === editingItem.manufacturerId,
+        );
+      }
+
+      setProducts(filtered);
+    } else {
+      if (editingItem.manufacturerId) {
+        const filtered = await productService.getProductsByManufacturer(
+          editingItem.manufacturerId,
+        );
+        setProducts(filtered);
+      } else {
+        const all = await productService.getAllProducts();
+        setProducts(all);
+      }
+    }
+  };
+
+  const handleEditItemManufacturerChange = async (manufacturerId: string) => {
+    if (!editingItem) return;
+    const previousManufacturerId = editingItem.manufacturerId;
+    const vendorAlreadySelected =
+      editingItem.vendorId && !previousManufacturerId;
+
+    if (vendorAlreadySelected && manufacturerId) {
+      setEditingItem({
+        ...editingItem,
+        manufacturerId: manufacturerId || undefined,
+      });
+
+      const vendorProductIds = productVendors
+        .filter((pv: ProductVendor) => pv.vendorId === editingItem.vendorId)
+        .map((pv: ProductVendor) => pv.productId);
+
+      const filtered = allProducts.filter(
+        (p) =>
+          p.manufacturerId === manufacturerId &&
+          vendorProductIds.includes(p.id),
+      );
+      setProducts(filtered);
+    } else {
+      setEditingItem({
+        ...editingItem,
+        manufacturerId: manufacturerId || undefined,
+        productId: undefined,
+        vendorId: undefined,
+        modelNumber: undefined,
+        material: "",
+        unit: "",
+        unitCost: 0,
+        name: "",
+      });
+
+      if (manufacturerId) {
+        const allFiltered =
+          await productService.getProductsByManufacturer(manufacturerId);
+        setProducts(allFiltered);
+      } else {
+        const all = await productService.getAllProducts();
+        setProducts(all);
+      }
+    }
+  };
+
+  const handleEditItemProductSelect = async (productId: string) => {
+    if (!editingItem) return;
+    const product = products.find((p) => p.id === productId);
+    if (product) {
+      const productVendorList = productVendors.filter(
+        (pv: ProductVendor) => pv.productId === productId,
+      );
+
+      let selectedVendorId = editingItem.vendorId;
+      let cost = 0;
+
+      if (selectedVendorId) {
+        const vendorCost = productVendors.find(
+          (pv: ProductVendor) =>
+            pv.productId === productId && pv.vendorId === selectedVendorId,
+        );
+        cost = vendorCost?.cost || 0;
+      } else if (productVendorList.length >= 1) {
+        const primaryVendor =
+          productVendorList.find((pv) => pv.isPrimary) || productVendorList[0];
+        selectedVendorId = primaryVendor.vendorId;
+        cost = primaryVendor.cost;
+      } else {
+        selectedVendorId = undefined;
+        cost = 0;
+      }
+
+      setEditingItem({
+        ...editingItem,
+        productId: product.id,
+        manufacturerId: product.manufacturerId,
+        modelNumber: product.modelNumber || undefined,
+        material: product.description || "",
+        unit: product.unit || "",
+        vendorId: selectedVendorId,
+        unitCost: cost,
+        status: "selected",
+      });
+
+      setProducts(allProducts);
+    }
+  };
+
+  const getEditFilteredManufacturers = () => {
+    if (!editingItem) return manufacturers;
+
+    if (editingItem.productId) {
+      return manufacturers;
+    }
+
+    if (!editingItem.vendorId) {
+      return manufacturers;
+    }
+
+    const vendorProductIds = productVendors
+      .filter((pv: ProductVendor) => pv.vendorId === editingItem.vendorId)
+      .map((pv: ProductVendor) => pv.productId);
+
+    const manufacturerIds = new Set(
+      allProducts
+        .filter((p) => vendorProductIds.includes(p.id))
+        .map((p) => p.manufacturerId)
+        .filter((id) => id !== undefined),
+    );
+
+    return manufacturers.filter((m) => manufacturerIds.has(m.id));
+  };
+
+  const getEditFilteredVendors = () => {
+    if (!editingItem) return vendors;
+
+    if (editingItem.productId) {
+      const vendorIds = new Set(
+        productVendors
+          .filter((pv: ProductVendor) => pv.productId === editingItem.productId)
+          .map((pv: ProductVendor) => pv.vendorId),
+      );
+      return vendors.filter((v) => vendorIds.has(v.id));
+    }
+
+    if (editingItem.manufacturerId) {
+      const manufacturerProductIds = allProducts
+        .filter((p) => p.manufacturerId === editingItem.manufacturerId)
+        .map((p) => p.id);
+
+      const vendorIds = new Set(
+        productVendors
+          .filter((pv: ProductVendor) =>
+            manufacturerProductIds.includes(pv.productId),
+          )
+          .map((pv: ProductVendor) => pv.vendorId),
+      );
+
+      return vendors.filter((v) => vendorIds.has(v.id));
+    }
+
+    return vendors;
   };
 
   // =============================================================================
@@ -594,7 +790,7 @@ const ProjectDetail = () => {
         productId: product.id,
         manufacturerId: product.manufacturerId,
         modelNumber: product.modelNumber || undefined,
-        name: product.name,
+        name: newItem.name.trim() ? newItem.name : product.name,
         material: product.description || "",
         unit: product.unit || "",
         vendorId: selectedVendorId,
@@ -603,6 +799,60 @@ const ProjectDetail = () => {
 
       // Reset products list to full (manufacturer list also goes to full via getFilteredManufacturers)
       setProducts(allProducts);
+    }
+  };
+
+  const handleOpenSelectProduct = (item: LineItem) => {
+    setSelectingForLineItem(item);
+    setSelectedCategoryForInsert(item.categoryId);
+    setInsertQuantity(item.quantity);
+    setInsertUnitCost(0);
+    setShowInsertProductModal(true);
+  };
+
+  const handleSelectProduct = async (product: Product) => {
+    if (!selectingForLineItem) return;
+
+    try {
+      // Get primary vendor for this product
+      const primaryVendor = await productVendorService.getPrimaryVendor(
+        product.id,
+      );
+
+      const updatedItem = {
+        ...selectingForLineItem,
+        productId: product.id,
+        manufacturerId: product.manufacturerId,
+        modelNumber: product.modelNumber || undefined,
+        material: product.description || "",
+        unit: product.unit || "",
+        vendorId: primaryVendor?.vendorId,
+        unitCost:
+          insertUnitCost > 0 ? insertUnitCost : primaryVendor?.cost || 0,
+        quantity: insertQuantity,
+        status: "selected" as const,
+      };
+
+      const updated = await lineItemService.update(
+        selectingForLineItem.id,
+        updatedItem,
+      );
+      setLineItems(
+        lineItems.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setShowInsertProductModal(false);
+      setSelectingForLineItem(null);
+      setSearchTerm("");
+      setFilterVendorId("");
+      setFilterManufacturerId("");
+      setFilterCategory("");
+      setFilterTier({ good: false, better: false, best: false });
+      setFilterCollection("");
+      setInsertQuantity(1);
+      setInsertUnitCost(0);
+    } catch (err) {
+      alert("Failed to select product");
+      console.error("Error selecting product:", err);
     }
   };
 
@@ -642,6 +892,7 @@ const ProjectDetail = () => {
       const created = await lineItemService.create(newLineItem);
       setLineItems([...lineItems, created]);
       setShowInsertProductModal(false);
+      setSelectingForLineItem(null);
       setSearchTerm("");
       setFilterVendorId("");
       setFilterManufacturerId("");
@@ -1456,21 +1707,6 @@ const ProjectDetail = () => {
                           <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Item
                           </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                            Model
-                          </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                            Material
-                          </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-28">
-                            Vendor
-                          </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                            Mfr
-                          </th>
-                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
-                            Product
-                          </th>
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                             Qty
                           </th>
@@ -1481,10 +1717,25 @@ const ProjectDetail = () => {
                             Unit Cost
                           </th>
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
-                            Total
+                            Allowance
                           </th>
                           <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
-                            Allowance
+                            Total
+                          </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-28 border-l-2 border-gray-300">
+                            Vendor
+                          </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                            Mfr
+                          </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
+                            Product
+                          </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                            Model
+                          </th>
+                          <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                            Material
                           </th>
                           <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                             Status
@@ -1496,85 +1747,32 @@ const ProjectDetail = () => {
                         {getCategoryLineItems(category.id).map((item) => {
                           const isEditing = editingItemId === item.id;
                           if (isEditing && editingItem) {
+                            const canEditProduct =
+                              editingItem.status === "pending" ||
+                              editingItem.status === "selected";
                             return (
                               <tr
                                 key={item.id}
                                 className="bg-blue-50 border-2 border-indigo-300"
                               >
                                 <td className="px-2 py-1">
-                                  <input
-                                    type="text"
-                                    value={editingItem.name}
-                                    onChange={(e) =>
-                                      setEditingItem({
-                                        ...editingItem,
-                                        name: e.target.value,
-                                      })
-                                    }
-                                    className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                  />
-                                </td>
-                                <td className="px-2 py-1 text-gray-600">
-                                  {editingItem.modelNumber || "-"}
-                                </td>
-                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                  {editingItem.material}
-                                </td>
-                                <td className="px-2 py-1">
-                                  <select
-                                    value={editingItem.vendorId || ""}
-                                    onChange={(e) =>
-                                      setEditingItem({
-                                        ...editingItem,
-                                        vendorId: e.target.value || undefined,
-                                      })
-                                    }
-                                    className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                  >
-                                    <option value="">-</option>
-                                    {(() => {
-                                      if (editingItem.productId) {
-                                        const productVendorList =
-                                          productVendors.filter(
-                                            (pv) =>
-                                              pv.productId ===
-                                              editingItem.productId,
-                                          );
-                                        const vendorIds = productVendorList.map(
-                                          (pv) => pv.vendorId,
-                                        );
-                                        return vendors
-                                          .filter((v) =>
-                                            vendorIds.includes(v.id),
-                                          )
-                                          .map((v) => (
-                                            <option key={v.id} value={v.id}>
-                                              {v.name}
-                                            </option>
-                                          ));
+                                  {canEditProduct ? (
+                                    <input
+                                      type="text"
+                                      value={editingItem.name}
+                                      onChange={(e) =>
+                                        setEditingItem({
+                                          ...editingItem,
+                                          name: e.target.value,
+                                        })
                                       }
-                                      return vendors.map((v) => (
-                                        <option key={v.id} value={v.id}>
-                                          {v.name}
-                                        </option>
-                                      ));
-                                    })()}
-                                  </select>
-                                </td>
-                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                  {editingItem.manufacturerId
-                                    ? manufacturers.find(
-                                        (m) =>
-                                          m.id === editingItem.manufacturerId,
-                                      )?.name
-                                    : "-"}
-                                </td>
-                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                  {editingItem.productId
-                                    ? products.find(
-                                        (p) => p.id === editingItem.productId,
-                                      )?.name
-                                    : "-"}
+                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                    />
+                                  ) : (
+                                    <span className="text-gray-600">
+                                      {editingItem.name}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-2 py-1">
                                   <input
@@ -1608,12 +1806,6 @@ const ProjectDetail = () => {
                                     className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
                                   />
                                 </td>
-                                <td className="px-2 py-1 text-right font-medium">
-                                  $
-                                  {(
-                                    editingItem.quantity * editingItem.unitCost
-                                  ).toFixed(2)}
-                                </td>
                                 <td className="px-2 py-1">
                                   <input
                                     type="number"
@@ -1629,6 +1821,111 @@ const ProjectDetail = () => {
                                     className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
                                   />
                                 </td>
+                                <td className="px-2 py-1 text-right font-medium">
+                                  $
+                                  {(
+                                    editingItem.quantity * editingItem.unitCost
+                                  ).toFixed(2)}
+                                </td>
+                                <td className="px-2 py-1 border-l-2 border-gray-300">
+                                  {canEditProduct ? (
+                                    <select
+                                      value={editingItem.vendorId || ""}
+                                      onChange={(e) =>
+                                        handleEditItemVendorChange(
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                    >
+                                      <option value="">-</option>
+                                      {getEditFilteredVendors().map((v) => (
+                                        <option key={v.id} value={v.id}>
+                                          {v.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span className="text-gray-600">
+                                      {editingItem.vendorId
+                                        ? vendors.find(
+                                            (v) =>
+                                              v.id === editingItem.vendorId,
+                                          )?.name
+                                        : "-"}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1">
+                                  {canEditProduct ? (
+                                    <select
+                                      value={editingItem.manufacturerId || ""}
+                                      onChange={(e) =>
+                                        handleEditItemManufacturerChange(
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                    >
+                                      <option value="">-</option>
+                                      {getEditFilteredManufacturers().map(
+                                        (m) => (
+                                          <option key={m.id} value={m.id}>
+                                            {m.name}
+                                          </option>
+                                        ),
+                                      )}
+                                    </select>
+                                  ) : (
+                                    <span className="text-gray-600">
+                                      {editingItem.manufacturerId
+                                        ? manufacturers.find(
+                                            (m) =>
+                                              m.id ===
+                                              editingItem.manufacturerId,
+                                          )?.name
+                                        : "-"}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1">
+                                  {canEditProduct ? (
+                                    <select
+                                      value={editingItem.productId || ""}
+                                      onChange={(e) =>
+                                        handleEditItemProductSelect(
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                    >
+                                      <option value="">-</option>
+                                      {products.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {p.name}{" "}
+                                          {p.modelNumber
+                                            ? `(${p.modelNumber})`
+                                            : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span className="text-gray-600">
+                                      {editingItem.productId
+                                        ? products.find(
+                                            (p) =>
+                                              p.id === editingItem.productId,
+                                          )?.name
+                                        : "-"}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1 text-gray-600">
+                                  {editingItem.modelNumber || "-"}
+                                </td>
+                                <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                  {editingItem.material}
+                                </td>
                                 <td className="px-2 py-1">
                                   <select
                                     value={editingItem.status || "pending"}
@@ -1641,6 +1938,7 @@ const ProjectDetail = () => {
                                     className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                                   >
                                     <option value="pending">Pending</option>
+                                    <option value="selected">Selected</option>
                                     <option value="ordered">Ordered</option>
                                     <option value="received">Received</option>
                                     <option value="installed">Installed</option>
@@ -1670,16 +1968,20 @@ const ProjectDetail = () => {
                                 className="border-b border-gray-100 hover:bg-gray-50"
                               >
                                 <td className="px-2 py-1">{item.name}</td>
-                                <td className="px-2 py-1 text-gray-600">
-                                  {item.modelNumber || "-"}
+                                <td className="px-2 py-1 text-right">
+                                  {item.quantity}
                                 </td>
-                                <td
-                                  className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
-                                  title={item.material}
-                                >
-                                  {item.material}
+                                <td className="px-2 py-1">{item.unit}</td>
+                                <td className="px-2 py-1 text-right">
+                                  ${item.unitCost.toFixed(2)}
                                 </td>
-                                <td className="px-2 py-1 text-gray-600">
+                                <td className="px-2 py-1 text-right">
+                                  ${(item.allowance || 0).toFixed(2)}
+                                </td>
+                                <td className="px-2 py-1 text-right font-medium">
+                                  ${item.totalCost.toFixed(2)}
+                                </td>
+                                <td className="px-2 py-1 text-gray-600 border-l-2 border-gray-300">
                                   {item.vendorId
                                     ? vendors.find(
                                         (v) => v.id === item.vendorId,
@@ -1716,18 +2018,14 @@ const ProjectDetail = () => {
                                       })()
                                     : "-"}
                                 </td>
-                                <td className="px-2 py-1 text-right">
-                                  {item.quantity}
+                                <td className="px-2 py-1 text-gray-600">
+                                  {item.modelNumber || "-"}
                                 </td>
-                                <td className="px-2 py-1">{item.unit}</td>
-                                <td className="px-2 py-1 text-right">
-                                  ${item.unitCost.toFixed(2)}
-                                </td>
-                                <td className="px-2 py-1 text-right font-medium">
-                                  ${item.totalCost.toFixed(2)}
-                                </td>
-                                <td className="px-2 py-1 text-right">
-                                  ${(item.allowance || 0).toFixed(2)}
+                                <td
+                                  className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
+                                  title={item.material}
+                                >
+                                  {item.material}
                                 </td>
                                 <td className="px-2 py-1">
                                   <span
@@ -1754,6 +2052,18 @@ const ProjectDetail = () => {
                                       {expandedCategoryLineItems.has(item.id)
                                         ? "🔽"
                                         : "📋"}
+                                    </button>
+                                  )}
+                                  {(item.status === "pending" ||
+                                    item.status === "selected") && (
+                                    <button
+                                      onClick={() =>
+                                        handleOpenSelectProduct(item)
+                                      }
+                                      className="ml-1 text-green-600 hover:text-green-900"
+                                      title="Select product"
+                                    >
+                                      📦
                                     </button>
                                   )}
                                   <button
@@ -1848,6 +2158,44 @@ const ProjectDetail = () => {
                                           >
                                             <tr className="text-xs">
                                               <td className="px-2 py-1"></td>
+                                              <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                {orderItem?.orderedQuantity ||
+                                                  ""}
+                                              </td>
+                                              <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
+                                                {orderItem
+                                                  ? item.unit || "-"
+                                                  : ""}
+                                              </td>
+                                              <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                {orderItem
+                                                  ? `$${orderItem.orderedPrice.toFixed(2)}`
+                                                  : ""}
+                                              </td>
+                                              <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                {orderItem &&
+                                                  variance !== null && (
+                                                    <span
+                                                      className={
+                                                        variance >= 0
+                                                          ? "text-green-600"
+                                                          : "text-red-600"
+                                                      }
+                                                    >
+                                                      {variance >= 0
+                                                        ? "$"
+                                                        : "-$"}
+                                                      {Math.abs(
+                                                        variance,
+                                                      ).toFixed(2)}
+                                                    </span>
+                                                  )}
+                                              </td>
+                                              <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                {orderItem
+                                                  ? `$${orderTotal.toFixed(2)}`
+                                                  : ""}
+                                              </td>
                                               <td
                                                 colSpan={5}
                                                 className="px-2 py-1 text-gray-700 bg-blue-50"
@@ -1859,47 +2207,8 @@ const ProjectDetail = () => {
                                                   ).toLocaleDateString()}
                                                 </span>
                                               </td>
-                                              {orderItem ? (
-                                                <>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    {orderItem.orderedQuantity}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                    {item.unit || "-"}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    $
-                                                    {orderItem.orderedPrice.toFixed(
-                                                      2,
-                                                    )}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    ${orderTotal.toFixed(2)}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                    {variance !== null && (
-                                                      <span
-                                                        className={
-                                                          variance >= 0
-                                                            ? "text-green-600"
-                                                            : "text-red-600"
-                                                        }
-                                                      >
-                                                        {variance >= 0
-                                                          ? "$"
-                                                          : "-$"}
-                                                        {Math.abs(
-                                                          variance,
-                                                        ).toFixed(2)}
-                                                      </span>
-                                                    )}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-left text-gray-600 bg-blue-50"></td>
-                                                  <td className="px-2 py-1 bg-blue-50"></td>
-                                                </>
-                                              ) : (
-                                                <td colSpan={7}></td>
-                                              )}
+                                              <td className="px-2 py-1 text-left text-gray-600 bg-blue-50"></td>
+                                              <td className="px-2 py-1 bg-blue-50"></td>
                                             </tr>
                                             {itemReceipts.map((receipt) => (
                                               <tr
@@ -1907,6 +2216,15 @@ const ProjectDetail = () => {
                                                 className="text-xs"
                                               >
                                                 <td className="px-2 py-1"></td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
+                                                  {receipt.receivedQuantity}
+                                                </td>
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                  {item.unit || "-"}
+                                                </td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
+                                                <td className="px-2 py-1 bg-green-50"></td>
                                                 <td
                                                   colSpan={5}
                                                   className="px-2 py-1 text-gray-700 bg-green-50"
@@ -1918,15 +2236,6 @@ const ProjectDetail = () => {
                                                     ).toLocaleDateString()}
                                                   </span>
                                                 </td>
-                                                <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
-                                                  {receipt.receivedQuantity}
-                                                </td>
-                                                <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
-                                                  {item.unit || "-"}
-                                                </td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
-                                                <td className="px-2 py-1 bg-green-50"></td>
                                                 <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
                                                   {receipt.notes || ""}
                                                 </td>
@@ -1960,15 +2269,55 @@ const ProjectDetail = () => {
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                               />
                             </td>
+                            <td className="px-2 py-1">
+                              <input
+                                type="number"
+                                value={newItem.quantity}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    quantity: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
+                              />
+                            </td>
                             <td className="px-2 py-1 text-gray-600">
-                              {newItem.modelNumber || "-"}
+                              {newItem.unit || "-"}
                             </td>
                             <td className="px-2 py-1">
-                              <div className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs bg-gray-50 text-gray-600">
-                                {newItem.material || "-"}
-                              </div>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={newItem.unitCost}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    unitCost: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
+                              />
                             </td>
                             <td className="px-2 py-1">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={newItem.allowance || 0}
+                                onChange={(e) =>
+                                  setNewItem({
+                                    ...newItem,
+                                    allowance: parseFloat(e.target.value) || 0,
+                                  })
+                                }
+                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
+                              />
+                            </td>
+                            <td className="px-2 py-1 text-right font-medium">
+                              $
+                              {(newItem.quantity * newItem.unitCost).toFixed(2)}
+                            </td>
+                            <td className="px-2 py-1 border-l-2 border-gray-300">
                               <select
                                 value={newItem.vendorId || ""}
                                 onChange={(e) =>
@@ -2017,64 +2366,11 @@ const ProjectDetail = () => {
                                 ))}
                               </select>
                             </td>
-                            <td className="px-2 py-1">
-                              <input
-                                type="number"
-                                value={newItem.quantity}
-                                onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    quantity: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
-                              />
+                            <td className="px-2 py-1 text-gray-600">
+                              {newItem.modelNumber || "-"}
                             </td>
-                            <td className="px-2 py-1">
-                              <input
-                                type="text"
-                                value={newItem.unit}
-                                onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    unit: e.target.value,
-                                  })
-                                }
-                                placeholder="ea"
-                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                              />
-                            </td>
-                            <td className="px-2 py-1">
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={newItem.unitCost}
-                                onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    unitCost: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
-                              />
-                            </td>
-                            <td className="px-2 py-1 text-right font-medium">
-                              $
-                              {(newItem.quantity * newItem.unitCost).toFixed(2)}
-                            </td>
-                            <td className="px-2 py-1">
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={newItem.allowance || 0}
-                                onChange={(e) =>
-                                  setNewItem({
-                                    ...newItem,
-                                    allowance: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
-                              />
+                            <td className="px-2 py-1 text-gray-600">
+                              {newItem.material || "-"}
                             </td>
                             <td className="px-2 py-1">
                               <select
@@ -2088,7 +2384,7 @@ const ProjectDetail = () => {
                                 className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                               >
                                 <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
+                                <option value="selected">Selected</option>
                                 <option value="ordered">Ordered</option>
                               </select>
                             </td>
@@ -2107,7 +2403,7 @@ const ProjectDetail = () => {
                                     projectId: id || "",
                                     name: "",
                                     material: "",
-                                    quantity: 0,
+                                    quantity: 1,
                                     unit: "",
                                     unitCost: 0,
                                     notes: "",
@@ -2190,18 +2486,6 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Item
                               </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                                Model
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                                Material
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                                Mfr
-                              </th>
-                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
-                                Product
-                              </th>
                               <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                                 Qty
                               </th>
@@ -2214,6 +2498,18 @@ const ProjectDetail = () => {
                               <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
                                 Total
                               </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24 border-l-2 border-gray-300">
+                                Mfr
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
+                                Product
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                                Model
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                                Material
+                              </th>
                               <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                                 Status
                               </th>
@@ -2225,46 +2521,32 @@ const ProjectDetail = () => {
                               const isEditing = editingItemId === item.id;
 
                               if (isEditing && editingItem) {
+                                const canEditProduct =
+                                  editingItem.status === "pending" ||
+                                  editingItem.status === "selected";
                                 return (
                                   <tr
                                     key={item.id}
                                     className="bg-blue-50 border-2 border-indigo-300"
                                   >
                                     <td className="px-2 py-1">
-                                      <input
-                                        type="text"
-                                        value={editingItem.name}
-                                        onChange={(e) =>
-                                          setEditingItem({
-                                            ...editingItem,
-                                            name: e.target.value,
-                                          })
-                                        }
-                                        className="w-full px-1 py-0.5 border rounded text-xs"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-1 text-gray-600">
-                                      {editingItem.modelNumber || "-"}
-                                    </td>
-                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                      {editingItem.material}
-                                    </td>
-                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                      {editingItem.manufacturerId
-                                        ? manufacturers.find(
-                                            (m) =>
-                                              m.id ===
-                                              editingItem.manufacturerId,
-                                          )?.name
-                                        : "-"}
-                                    </td>
-                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                      {editingItem.productId
-                                        ? products.find(
-                                            (p) =>
-                                              p.id === editingItem.productId,
-                                          )?.name
-                                        : "-"}
+                                      {canEditProduct ? (
+                                        <input
+                                          type="text"
+                                          value={editingItem.name}
+                                          onChange={(e) =>
+                                            setEditingItem({
+                                              ...editingItem,
+                                              name: e.target.value,
+                                            })
+                                          }
+                                          className="w-full px-1 py-0.5 border rounded text-xs"
+                                        />
+                                      ) : (
+                                        <span className="text-gray-600">
+                                          {editingItem.name}
+                                        </span>
+                                      )}
                                     </td>
                                     <td className="px-2 py-1">
                                       <input
@@ -2305,6 +2587,79 @@ const ProjectDetail = () => {
                                         editingItem.unitCost
                                       ).toFixed(2)}
                                     </td>
+                                    <td className="px-2 py-1 border-l-2 border-gray-300">
+                                      {canEditProduct ? (
+                                        <select
+                                          value={
+                                            editingItem.manufacturerId || ""
+                                          }
+                                          onChange={(e) =>
+                                            handleEditItemManufacturerChange(
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-1 py-0.5 border rounded text-xs"
+                                        >
+                                          <option value="">-</option>
+                                          {getEditFilteredManufacturers().map(
+                                            (m) => (
+                                              <option key={m.id} value={m.id}>
+                                                {m.name}
+                                              </option>
+                                            ),
+                                          )}
+                                        </select>
+                                      ) : (
+                                        <span className="text-gray-600">
+                                          {editingItem.manufacturerId
+                                            ? manufacturers.find(
+                                                (m) =>
+                                                  m.id ===
+                                                  editingItem.manufacturerId,
+                                              )?.name
+                                            : "-"}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-1">
+                                      {canEditProduct ? (
+                                        <select
+                                          value={editingItem.productId || ""}
+                                          onChange={(e) =>
+                                            handleEditItemProductSelect(
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-1 py-0.5 border rounded text-xs"
+                                        >
+                                          <option value="">-</option>
+                                          {products.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                              {p.name}{" "}
+                                              {p.modelNumber
+                                                ? `(${p.modelNumber})`
+                                                : ""}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      ) : (
+                                        <span className="text-gray-600">
+                                          {editingItem.productId
+                                            ? products.find(
+                                                (p) =>
+                                                  p.id ===
+                                                  editingItem.productId,
+                                              )?.name
+                                            : "-"}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-2 py-1 text-gray-600">
+                                      {editingItem.modelNumber || "-"}
+                                    </td>
+                                    <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                      {editingItem.material}
+                                    </td>
                                     <td className="px-2 py-1">
                                       <select
                                         value={editingItem.status || "pending"}
@@ -2317,6 +2672,9 @@ const ProjectDetail = () => {
                                         className="px-1 py-0.5 border rounded text-xs"
                                       >
                                         <option value="pending">Pending</option>
+                                        <option value="selected">
+                                          Selected
+                                        </option>
                                         <option value="ordered">Ordered</option>
                                         <option value="received">
                                           Received
@@ -2353,16 +2711,17 @@ const ProjectDetail = () => {
                                   className="border-b border-gray-100 hover:bg-gray-50"
                                 >
                                   <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {item.modelNumber || "-"}
+                                  <td className="px-2 py-1 text-right">
+                                    {item.quantity}
                                   </td>
-                                  <td
-                                    className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
-                                    title={item.material}
-                                  >
-                                    {item.material}
+                                  <td className="px-2 py-1">{item.unit}</td>
+                                  <td className="px-2 py-1 text-right">
+                                    ${item.unitCost.toFixed(2)}
                                   </td>
-                                  <td className="px-2 py-1 text-gray-600">
+                                  <td className="px-2 py-1 text-right font-medium">
+                                    ${item.totalCost.toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600 border-l-2 border-gray-300">
                                     {item.manufacturerId
                                       ? manufacturers.find(
                                           (m) => m.id === item.manufacturerId,
@@ -2376,15 +2735,14 @@ const ProjectDetail = () => {
                                         )?.name
                                       : "-"}
                                   </td>
-                                  <td className="px-2 py-1 text-right">
-                                    {item.quantity}
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.modelNumber || "-"}
                                   </td>
-                                  <td className="px-2 py-1">{item.unit}</td>
-                                  <td className="px-2 py-1 text-right">
-                                    ${item.unitCost.toFixed(2)}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-medium">
-                                    ${item.totalCost.toFixed(2)}
+                                  <td
+                                    className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
+                                    title={item.material}
+                                  >
+                                    {item.material}
                                   </td>
                                   <td className="px-2 py-1">
                                     <span
@@ -2514,18 +2872,6 @@ const ProjectDetail = () => {
                             <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Item
                             </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                              Model
-                            </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                              Material
-                            </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
-                              Mfr
-                            </th>
-                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
-                              Product
-                            </th>
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-12">
                               Qty
                             </th>
@@ -2536,10 +2882,22 @@ const ProjectDetail = () => {
                               Unit Cost
                             </th>
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
-                              Total
+                              Allowance
                             </th>
                             <th className="px-2 py-1 text-right font-medium text-gray-600 w-20">
-                              Allowance
+                              Total
+                            </th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24 border-l-2 border-gray-300">
+                              Mfr
+                            </th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
+                              Product
+                            </th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                              Model
+                            </th>
+                            <th className="px-2 py-1 text-left font-medium text-gray-600 w-24">
+                              Material
                             </th>
                             <th className="px-2 py-1 text-left font-medium text-gray-600 w-32">
                               Status
@@ -2552,44 +2910,32 @@ const ProjectDetail = () => {
                             const isEditing = editingItemId === item.id;
 
                             if (isEditing && editingItem) {
+                              const canEditProduct =
+                                editingItem.status === "pending" ||
+                                editingItem.status === "selected";
                               return (
                                 <tr
                                   key={item.id}
                                   className="bg-blue-50 border-2 border-indigo-300"
                                 >
                                   <td className="px-2 py-1">
-                                    <input
-                                      type="text"
-                                      value={editingItem.name}
-                                      onChange={(e) =>
-                                        setEditingItem({
-                                          ...editingItem,
-                                          name: e.target.value,
-                                        })
-                                      }
-                                      className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
-                                    />
-                                  </td>
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {editingItem.modelNumber || "-"}
-                                  </td>
-                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                    {editingItem.material}
-                                  </td>
-                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                    {editingItem.manufacturerId
-                                      ? manufacturers.find(
-                                          (m) =>
-                                            m.id === editingItem.manufacturerId,
-                                        )?.name
-                                      : "-"}
-                                  </td>
-                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
-                                    {editingItem.productId
-                                      ? products.find(
-                                          (p) => p.id === editingItem.productId,
-                                        )?.name
-                                      : "-"}
+                                    {canEditProduct ? (
+                                      <input
+                                        type="text"
+                                        value={editingItem.name}
+                                        onChange={(e) =>
+                                          setEditingItem({
+                                            ...editingItem,
+                                            name: e.target.value,
+                                          })
+                                        }
+                                        className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                      />
+                                    ) : (
+                                      <span className="text-gray-600">
+                                        {editingItem.name}
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="px-2 py-1">
                                     <input
@@ -2623,13 +2969,6 @@ const ProjectDetail = () => {
                                       className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
                                     />
                                   </td>
-                                  <td className="px-2 py-1 text-right font-medium">
-                                    $
-                                    {(
-                                      editingItem.quantity *
-                                      editingItem.unitCost
-                                    ).toFixed(2)}
-                                  </td>
                                   <td className="px-2 py-1">
                                     <input
                                       type="number"
@@ -2645,6 +2984,83 @@ const ProjectDetail = () => {
                                       className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs text-right"
                                     />
                                   </td>
+                                  <td className="px-2 py-1 text-right font-medium">
+                                    $
+                                    {(
+                                      editingItem.quantity *
+                                      editingItem.unitCost
+                                    ).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-1 border-l-2 border-gray-300">
+                                    {canEditProduct ? (
+                                      <select
+                                        value={editingItem.manufacturerId || ""}
+                                        onChange={(e) =>
+                                          handleEditItemManufacturerChange(
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                      >
+                                        <option value="">-</option>
+                                        {getEditFilteredManufacturers().map(
+                                          (m) => (
+                                            <option key={m.id} value={m.id}>
+                                              {m.name}
+                                            </option>
+                                          ),
+                                        )}
+                                      </select>
+                                    ) : (
+                                      <span className="text-gray-600">
+                                        {editingItem.manufacturerId
+                                          ? manufacturers.find(
+                                              (m) =>
+                                                m.id ===
+                                                editingItem.manufacturerId,
+                                            )?.name
+                                          : "-"}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1">
+                                    {canEditProduct ? (
+                                      <select
+                                        value={editingItem.productId || ""}
+                                        onChange={(e) =>
+                                          handleEditItemProductSelect(
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
+                                      >
+                                        <option value="">-</option>
+                                        {products.map((p) => (
+                                          <option key={p.id} value={p.id}>
+                                            {p.name}{" "}
+                                            {p.modelNumber
+                                              ? `(${p.modelNumber})`
+                                              : ""}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <span className="text-gray-600">
+                                        {editingItem.productId
+                                          ? products.find(
+                                              (p) =>
+                                                p.id === editingItem.productId,
+                                            )?.name
+                                          : "-"}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {editingItem.modelNumber || "-"}
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600 bg-gray-50">
+                                    {editingItem.material}
+                                  </td>
                                   <td className="px-2 py-1">
                                     <select
                                       value={editingItem.status || "pending"}
@@ -2657,6 +3073,7 @@ const ProjectDetail = () => {
                                       className="w-full px-1 py-0.5 border border-gray-300 rounded text-xs"
                                     >
                                       <option value="pending">Pending</option>
+                                      <option value="selected">Selected</option>
                                       <option value="ordered">Ordered</option>
                                       <option value="received">Received</option>
                                       <option value="installed">
@@ -2688,16 +3105,20 @@ const ProjectDetail = () => {
                                   className="border-b border-gray-100 hover:bg-gray-50"
                                 >
                                   <td className="px-2 py-1">{item.name}</td>
-                                  <td className="px-2 py-1 text-gray-600">
-                                    {item.modelNumber || "-"}
+                                  <td className="px-2 py-1 text-right">
+                                    {item.quantity}
                                   </td>
-                                  <td
-                                    className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
-                                    title={item.material}
-                                  >
-                                    {item.material}
+                                  <td className="px-2 py-1">{item.unit}</td>
+                                  <td className="px-2 py-1 text-right">
+                                    ${item.unitCost.toFixed(2)}
                                   </td>
-                                  <td className="px-2 py-1 text-gray-600">
+                                  <td className="px-2 py-1 text-right">
+                                    ${(item.allowance || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-1 text-right font-medium">
+                                    ${item.totalCost.toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-1 text-gray-600 border-l-2 border-gray-300">
                                     {item.manufacturerId
                                       ? manufacturers.find(
                                           (m) => m.id === item.manufacturerId,
@@ -2727,18 +3148,14 @@ const ProjectDetail = () => {
                                         })()
                                       : "-"}
                                   </td>
-                                  <td className="px-2 py-1 text-right">
-                                    {item.quantity}
+                                  <td className="px-2 py-1 text-gray-600">
+                                    {item.modelNumber || "-"}
                                   </td>
-                                  <td className="px-2 py-1">{item.unit}</td>
-                                  <td className="px-2 py-1 text-right">
-                                    ${item.unitCost.toFixed(2)}
-                                  </td>
-                                  <td className="px-2 py-1 text-right font-medium">
-                                    ${item.totalCost.toFixed(2)}
-                                  </td>
-                                  <td className="px-2 py-1 text-right">
-                                    ${(item.allowance || 0).toFixed(2)}
+                                  <td
+                                    className="px-2 py-1 text-gray-600 truncate max-w-[6rem]"
+                                    title={item.material}
+                                  >
+                                    {item.material}
                                   </td>
                                   <td className="px-2 py-1">
                                     <span
@@ -2862,6 +3279,44 @@ const ProjectDetail = () => {
                                             >
                                               <tr className="text-xs">
                                                 <td className="px-2 py-1"></td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                  {orderItem?.orderedQuantity ||
+                                                    ""}
+                                                </td>
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
+                                                  {orderItem
+                                                    ? item.unit || "-"
+                                                    : ""}
+                                                </td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                  {orderItem
+                                                    ? `$${orderItem.orderedPrice.toFixed(2)}`
+                                                    : ""}
+                                                </td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                  {orderItem &&
+                                                    variance !== null && (
+                                                      <span
+                                                        className={
+                                                          variance >= 0
+                                                            ? "text-green-600"
+                                                            : "text-red-600"
+                                                        }
+                                                      >
+                                                        {variance >= 0
+                                                          ? "$"
+                                                          : "-$"}
+                                                        {Math.abs(
+                                                          variance,
+                                                        ).toFixed(2)}
+                                                      </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
+                                                  {orderItem
+                                                    ? `$${orderTotal.toFixed(2)}`
+                                                    : ""}
+                                                </td>
                                                 <td
                                                   colSpan={4}
                                                   className="px-2 py-1 text-gray-700 bg-blue-50"
@@ -2873,49 +3328,8 @@ const ProjectDetail = () => {
                                                     ).toLocaleDateString()}
                                                   </span>
                                                 </td>
-                                                {orderItem ? (
-                                                  <>
-                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                      {
-                                                        orderItem.orderedQuantity
-                                                      }
-                                                    </td>
-                                                    <td className="px-2 py-1 text-left text-gray-600 bg-blue-50">
-                                                      {item.unit || "-"}
-                                                    </td>
-                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                      $
-                                                      {orderItem.orderedPrice.toFixed(
-                                                        2,
-                                                      )}
-                                                    </td>
-                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                      ${orderTotal.toFixed(2)}
-                                                    </td>
-                                                    <td className="px-2 py-1 text-right text-gray-600 bg-blue-50">
-                                                      {variance !== null && (
-                                                        <span
-                                                          className={
-                                                            variance >= 0
-                                                              ? "text-green-600"
-                                                              : "text-red-600"
-                                                          }
-                                                        >
-                                                          {variance >= 0
-                                                            ? "$"
-                                                            : "-$"}
-                                                          {Math.abs(
-                                                            variance,
-                                                          ).toFixed(2)}
-                                                        </span>
-                                                      )}
-                                                    </td>
-                                                    <td className="px-2 py-1 text-left text-gray-600 bg-blue-50"></td>
-                                                    <td className="px-2 py-1 bg-blue-50"></td>
-                                                  </>
-                                                ) : (
-                                                  <td colSpan={7}></td>
-                                                )}
+                                                <td className="px-2 py-1 text-left text-gray-600 bg-blue-50"></td>
+                                                <td className="px-2 py-1 bg-blue-50"></td>
                                               </tr>
                                               {itemReceipts.map((receipt) => (
                                                 <tr
@@ -2923,6 +3337,15 @@ const ProjectDetail = () => {
                                                   className="text-xs"
                                                 >
                                                   <td className="px-2 py-1"></td>
+                                                  <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
+                                                    {receipt.receivedQuantity}
+                                                  </td>
+                                                  <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
+                                                    {item.unit || "-"}
+                                                  </td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
+                                                  <td className="px-2 py-1 bg-green-50"></td>
                                                   <td
                                                     colSpan={4}
                                                     className="px-2 py-1 text-gray-700 bg-green-50"
@@ -2934,15 +3357,6 @@ const ProjectDetail = () => {
                                                       ).toLocaleDateString()}
                                                     </span>
                                                   </td>
-                                                  <td className="px-2 py-1 text-right text-gray-600 bg-green-50">
-                                                    {receipt.receivedQuantity}
-                                                  </td>
-                                                  <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
-                                                    {item.unit || "-"}
-                                                  </td>
-                                                  <td className="px-2 py-1 bg-green-50"></td>
-                                                  <td className="px-2 py-1 bg-green-50"></td>
-                                                  <td className="px-2 py-1 bg-green-50"></td>
                                                   <td className="px-2 py-1 text-left text-gray-600 bg-green-50">
                                                     {receipt.notes || ""}
                                                   </td>
@@ -3207,6 +3621,7 @@ const ProjectDetail = () => {
                   className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="pending">Pending</option>
+                  <option value="selected">Selected</option>
                   <option value="ordered">Ordered</option>
                   <option value="received">Received</option>
                   <option value="installed">Installed</option>
@@ -3511,11 +3926,14 @@ const ProjectDetail = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900">
-                Insert Product into Project
+                {selectingForLineItem
+                  ? "Select Product for Line Item"
+                  : "Insert Product into Project"}
               </h3>
               <button
                 onClick={() => {
                   setShowInsertProductModal(false);
+                  setSelectingForLineItem(null);
                   setSearchTerm("");
                   setFilterVendorId("");
                   setFilterManufacturerId("");
@@ -3648,14 +4066,15 @@ const ProjectDetail = () => {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Insert into Section *
+                    {selectingForLineItem ? "Section" : "Insert into Section *"}
                   </label>
                   <select
                     value={selectedCategoryForInsert}
                     onChange={(e) =>
                       setSelectedCategoryForInsert(e.target.value)
                     }
-                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    disabled={!!selectingForLineItem}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -3893,10 +4312,14 @@ const ProjectDetail = () => {
                               </td>
                               <td className="px-3 py-2 text-xs">
                                 <button
-                                  onClick={() => handleInsertProduct(product)}
+                                  onClick={() =>
+                                    selectingForLineItem
+                                      ? handleSelectProduct(product)
+                                      : handleInsertProduct(product)
+                                  }
                                   className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
                                 >
-                                  Insert
+                                  {selectingForLineItem ? "Select" : "Insert"}
                                 </button>
                               </td>
                             </tr>
@@ -3923,6 +4346,7 @@ const ProjectDetail = () => {
               <button
                 onClick={() => {
                   setShowInsertProductModal(false);
+                  setSelectingForLineItem(null);
                   setSearchTerm("");
                   setFilterVendorId("");
                   setFilterManufacturerId("");

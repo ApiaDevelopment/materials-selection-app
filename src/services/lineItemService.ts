@@ -30,8 +30,11 @@ export const lineItemService = {
 
   // Create a new line item
   create: async (data: CreateLineItemRequest): Promise<LineItem> => {
-    const response = await apiClient.post<LineItem>("/lineitems", data);
-    return response.data;
+    const response = await apiClient.post<{
+      success: boolean;
+      lineItem: LineItem;
+    }>("/lineitems", data);
+    return response.data.lineItem;
   },
 
   // Update an existing line item
