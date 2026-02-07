@@ -121,6 +121,12 @@ const ProjectDetail = () => {
   const [filterVendorId, setFilterVendorId] = useState<string>("");
   const [filterManufacturerId, setFilterManufacturerId] = useState<string>("");
   const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterTier, setFilterTier] = useState({
+    good: false,
+    better: false,
+    best: false,
+  });
+  const [filterCollection, setFilterCollection] = useState<string>("");
   const [selectedCategoryForInsert, setSelectedCategoryForInsert] =
     useState<string>("");
   const [insertQuantity, setInsertQuantity] = useState<number>(1);
@@ -640,6 +646,8 @@ const ProjectDetail = () => {
       setFilterVendorId("");
       setFilterManufacturerId("");
       setFilterCategory("");
+      setFilterTier({ good: false, better: false, best: false });
+      setFilterCollection("");
       setInsertQuantity(1);
       setInsertUnitCost(0);
     } catch (err) {
@@ -1248,6 +1256,8 @@ const ProjectDetail = () => {
                 setFilterVendorId("");
                 setFilterManufacturerId("");
                 setFilterCategory("");
+                setFilterTier({ good: false, better: false, best: false });
+                setFilterCollection("");
                 setSearchTerm("");
                 setSelectedCategoryForInsert(categories[0]?.id || "");
                 setInsertQuantity(1);
@@ -3498,13 +3508,30 @@ const ProjectDetail = () => {
       {showInsertProductModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Insert Product into Project
-            </h3>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Insert Product into Project
+              </h3>
+              <button
+                onClick={() => {
+                  setShowInsertProductModal(false);
+                  setSearchTerm("");
+                  setFilterVendorId("");
+                  setFilterManufacturerId("");
+                  setFilterCategory("");
+                  setFilterTier({ good: false, better: false, best: false });
+                  setFilterCollection("");
+                }}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
 
             {/* Filter Section */}
-            <div className="bg-gray-50 p-3 rounded mb-4 space-y-3">
-              <div className="grid grid-cols-4 gap-3">
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4 space-y-3">
+              <div className="grid grid-cols-5 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Search
@@ -3563,13 +3590,65 @@ const ProjectDetail = () => {
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-              </div>
-
-              {/* Insert into Category & Quantity */}
-              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-300">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Insert into Category *
+                    Collection
+                  </label>
+                  <input
+                    type="text"
+                    value={filterCollection}
+                    onChange={(e) => setFilterCollection(e.target.value)}
+                    placeholder="Filter by collection..."
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Tier Filters */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-medium text-gray-700">Tier:</span>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterTier.good}
+                    onChange={(e) =>
+                      setFilterTier({ ...filterTier, good: e.target.checked })
+                    }
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Good</span>
+                </label>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterTier.better}
+                    onChange={(e) =>
+                      setFilterTier({ ...filterTier, better: e.target.checked })
+                    }
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Better</span>
+                </label>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterTier.best}
+                    onChange={(e) =>
+                      setFilterTier({ ...filterTier, best: e.target.checked })
+                    }
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span>Best</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Insert into Section & Quantity */}
+            <div className="mb-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Insert into Section *
                   </label>
                   <select
                     value={selectedCategoryForInsert}
@@ -3652,12 +3731,23 @@ const ProjectDetail = () => {
                       // Search term filter
                       if (searchTerm) {
                         const search = searchTerm.toLowerCase();
-                        filtered = filtered.filter(
-                          (p) =>
+                        filtered = filtered.filter((p) => {
+                          // Search in product fields
+                          if (
                             p.name.toLowerCase().includes(search) ||
                             p.description?.toLowerCase().includes(search) ||
-                            p.modelNumber?.toLowerCase().includes(search),
-                        );
+                            p.modelNumber?.toLowerCase().includes(search)
+                          ) {
+                            return true;
+                          }
+                          // Search in vendor SKUs
+                          const productVendorList = productVendors.filter(
+                            (pv) => pv.productId === p.id,
+                          );
+                          return productVendorList.some((pv) =>
+                            pv.sku?.toLowerCase().includes(search),
+                          );
+                        });
                       }
 
                       // Manufacturer filter
@@ -3672,6 +3762,32 @@ const ProjectDetail = () => {
                         const catSearch = filterCategory.toLowerCase();
                         filtered = filtered.filter((p) =>
                           p.category?.toLowerCase().includes(catSearch),
+                        );
+                      }
+
+                      // Tier filter
+                      const anyTierFilterActive =
+                        filterTier.good || filterTier.better || filterTier.best;
+                      if (anyTierFilterActive) {
+                        filtered = filtered.filter((p) => {
+                          if (!p.tier) return false;
+                          if (p.tier === "good" && !filterTier.good)
+                            return false;
+                          if (p.tier === "better" && !filterTier.better)
+                            return false;
+                          if (p.tier === "best" && !filterTier.best)
+                            return false;
+                          return true;
+                        });
+                      }
+
+                      // Collection filter
+                      if (filterCollection) {
+                        const collectionSearch = filterCollection.toLowerCase();
+                        filtered = filtered.filter((p) =>
+                          p.collection
+                            ?.toLowerCase()
+                            .includes(collectionSearch),
                         );
                       }
 
@@ -3748,7 +3864,15 @@ const ProjectDetail = () => {
                                           key={pv.id}
                                           className="flex items-center gap-1"
                                         >
-                                          {vendor?.name}
+                                          <span>
+                                            {vendor?.name}
+                                            {pv.sku && (
+                                              <span className="text-gray-500">
+                                                {" "}
+                                                ({pv.sku})
+                                              </span>
+                                            )}
+                                          </span>
                                           {pv.isPrimary && (
                                             <span className="text-yellow-600">
                                               ★
@@ -3803,6 +3927,8 @@ const ProjectDetail = () => {
                   setFilterVendorId("");
                   setFilterManufacturerId("");
                   setFilterCategory("");
+                  setFilterTier({ good: false, better: false, best: false });
+                  setFilterCollection("");
                 }}
                 className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
               >
