@@ -1,0 +1,5 @@
+{
+  "httpMethod": "GET",
+  "path": "/salesforce/opportunities/006Ns00000nI7bVIAS",
+  "pathParameters": { "id": "006Ns00000nI7bVIAS" }
+}

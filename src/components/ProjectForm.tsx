@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { projectService } from "../services";
-import type { CreateProjectRequest, UpdateProjectRequest } from "../types";
+import { projectService, salesforceService } from "../services";
+import type {
+    CreateProjectRequest,
+    OpportunityDetails,
+    SalesforceOpportunity,
+    UpdateProjectRequest,
+} from "../types";
 
 const ProjectForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +19,16 @@ const ProjectForm = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Salesforce integration state
+  const [useSalesforce, setUseSalesforce] = useState(false);
+  const [showOpportunityModal, setShowOpportunityModal] = useState(false);
+  const [opportunities, setOpportunities] = useState<SalesforceOpportunity[]>(
+    [],
+  );
+  const [loadingOpportunities, setLoadingOpportunities] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] =
+    useState<OpportunityDetails | null>(null);
 
   useEffect(() => {
     if (isEditMode && id) {
@@ -61,6 +76,84 @@ const ProjectForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleToggleSalesforce = async () => {
+    const newValue = !useSalesforce;
+    setUseSalesforce(newValue);
+
+    if (newValue && opportunities.length === 0) {
+      // Load opportunities when toggled on for the first time
+      await loadOpportunities();
+    }
+
+    if (!newValue) {
+      // Clear SF data when toggled off
+      setSelectedOpportunity(null);
+    }
+  };
+
+  const loadOpportunities = async () => {
+    setLoadingOpportunities(true);
+    setError(null);
+    try {
+      const opps = await salesforceService.getOpportunities();
+      setOpportunities(opps);
+      if (opps.length > 0) {
+        setShowOpportunityModal(true);
+      } else {
+        setError(
+          "No Salesforce opportunities found where Selection Coordinator is needed.",
+        );
+      }
+    } catch (err) {
+      setError("Failed to load Salesforce opportunities");
+      console.error("Error loading opportunities:", err);
+      setUseSalesforce(false);
+    } finally {
+      setLoadingOpportunities(false);
+    }
+  };
+
+  const handleSelectOpportunity = async (opportunityId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const details =
+        await salesforceService.getOpportunityDetails(opportunityId);
+      setSelectedOpportunity(details);
+
+      // Pre-populate form with SF data
+      const address = [
+        details.account.BillingStreet,
+        details.account.BillingCity,
+        details.account.BillingState,
+        details.account.BillingPostalCode,
+        details.account.BillingCountry,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setFormData((prev) => ({
+        ...prev,
+        name: details.opportunity.Name,
+        customerName: details.contact.Name,
+        email: details.contact.Email || "",
+        phone: details.contact.Phone || "",
+        mobilePhone: details.contact.MobilePhone || "",
+        preferredContactMethod:
+          details.contact.Preferred_Method_of_Contact__c || "",
+        address: address,
+        opportunityId: details.opportunity.Id,
+      }));
+
+      setShowOpportunityModal(false);
+    } catch (err) {
+      setError("Failed to load opportunity details");
+      console.error("Error loading opportunity details:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="md:grid md:grid-cols-3 md:gap-6">
@@ -81,6 +174,34 @@ const ProjectForm = () => {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4">
                     <p className="text-red-800">{error}</p>
+                  </div>
+                )}
+
+                {!isEditMode && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="useSalesforce"
+                        checked={useSalesforce}
+                        onChange={handleToggleSalesforce}
+                        disabled={loadingOpportunities}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="useSalesforce"
+                        className="ml-3 block text-sm font-medium text-gray-700"
+                      >
+                        Create from Salesforce Opportunity
+                      </label>
+                    </div>
+                    {selectedOpportunity && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <strong>Selected:</strong>{" "}
+                        {selectedOpportunity.opportunity.Name} (
+                        {selectedOpportunity.opportunity.StageName})
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -140,6 +261,84 @@ const ProjectForm = () => {
           </form>
         </div>
       </div>
+
+      {/* Salesforce Opportunity Selection Modal */}
+      {showOpportunityModal && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={() => setShowOpportunityModal(false)}
+            />
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                      Select Salesforce Opportunity
+                    </h3>
+
+                    <div className="mt-4 max-h-96 overflow-y-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Stage
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {opportunities.map((opp) => (
+                            <tr key={opp.Id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {opp.Name}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {opp.StageName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleSelectOpportunity(opp.Id)
+                                  }
+                                  disabled={loading}
+                                  className="text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50"
+                                >
+                                  Select
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOpportunityModal(false);
+                    setUseSalesforce(false);
+                  }}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

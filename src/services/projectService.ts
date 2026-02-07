@@ -1,15 +1,15 @@
 import type {
-  CreateProjectRequest,
-  Project,
-  UpdateProjectRequest,
+    CreateProjectRequest,
+    Project,
+    UpdateProjectRequest,
 } from "../types";
 import apiClient from "./api";
 
 export const projectService = {
   // Get all projects
   getAll: async (): Promise<Project[]> => {
-    const response = await apiClient.get<Project[]>("/projects");
-    return response.data;
+    const response = await apiClient.get<{ projects: Project[] }>("/projects");
+    return response.data.projects;
   },
 
   // Get a single project by ID

@@ -199,6 +199,12 @@ const ProjectDetail = () => {
       setExpandedSections(allIds);
     } catch (err) {
       console.error("Error loading project:", err);
+      console.error("Project ID:", projectId);
+      console.error(
+        "Error details:",
+        err instanceof Error ? err.message : String(err),
+      );
+      // Keep project as null to trigger "Project not found" message
     } finally {
       setLoading(false);
     }

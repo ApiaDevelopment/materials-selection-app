@@ -1,0 +1,19 @@
+{
+  "name": "salesforce-api",
+  "version": "1.0.0",
+  "description": "Salesforce integration Lambda function for Materials Selection App",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "salesforce",
+    "lambda",
+    "integration"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

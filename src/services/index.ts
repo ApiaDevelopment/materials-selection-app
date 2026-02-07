@@ -5,5 +5,6 @@ export { orderService } from "./orderService";
 export { productService } from "./productService";
 export { productVendorService } from "./productVendorService";
 export { projectService } from "./projectService";
+export { salesforceService } from "./salesforceService";
 export { vendorService } from "./vendorService";
 

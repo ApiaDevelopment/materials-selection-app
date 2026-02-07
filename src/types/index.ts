@@ -6,6 +6,8 @@ export interface Project {
   address?: string;
   email?: string;
   phone?: string;
+  mobilePhone?: string;
+  preferredContactMethod?: string;
   estimatedStartDate?: string;
   type?:
     | "bath"
@@ -26,6 +28,8 @@ export interface Project {
   sharepointFolderUrl?: string;
   sharepointDriveId?: string;
   sharepointSiteId?: string;
+  // Salesforce integration fields
+  opportunityId?: string;
 }
 
 export interface Category {
@@ -112,6 +116,8 @@ export interface CreateProjectRequest {
   address?: string;
   email?: string;
   phone?: string;
+  mobilePhone?: string;
+  preferredContactMethod?: string;
   estimatedStartDate?: string;
   type?:
     | "bath"
@@ -125,12 +131,15 @@ export interface CreateProjectRequest {
     | "basement"
     | "other";
   status?: "planning" | "in-progress" | "on-hold" | "completed";
+  opportunityId?: string; // Salesforce Opportunity ID
 }
 
 export interface UpdateProjectRequest {
   name?: string;
   description?: string;
   customerName?: string;
+  mobilePhone?: string;
+  preferredContactMethod?: string;
   address?: string;
   email?: string;
   phone?: string;
@@ -319,4 +328,38 @@ export interface UpdateProductVendorRequest {
   cost?: number;
   sku?: string;
   isPrimary?: boolean;
+}
+
+// Salesforce integration types
+export interface SalesforceOpportunity {
+  Id: string;
+  Name: string;
+  StageName: string;
+  AccountId: string;
+  OCR_LU_PrimaryContact__c: string;
+  Selection_Coordinator_Needed__c: boolean;
+}
+
+export interface SalesforceAccount {
+  Id: string;
+  BillingStreet?: string;
+  BillingCity?: string;
+  BillingState?: string;
+  BillingPostalCode?: string;
+  BillingCountry?: string;
+}
+
+export interface SalesforceContact {
+  Id: string;
+  Name: string;
+  Email?: string;
+  Phone?: string;
+  MobilePhone?: string;
+  Preferred_Method_of_Contact__c?: string;
+}
+
+export interface OpportunityDetails {
+  opportunity: SalesforceOpportunity;
+  account: SalesforceAccount;
+  contact: SalesforceContact;
 }

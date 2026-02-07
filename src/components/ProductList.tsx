@@ -548,7 +548,7 @@ const ProductList = () => {
         )}
 
         {/* Tier Filter Checkboxes */}
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex items-center gap-3">
           <span className="text-xs text-gray-600 font-medium">Tier:</span>
           <label className="flex items-center gap-1 text-xs cursor-pointer">
             <input
@@ -875,6 +875,15 @@ const ProductList = () => {
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="ea">ea</option>
+                    <option value="case">case</option>
+                    <option value="box">box</option>
+                    <option value="bag">bag</option>
+                    <option value="set">set</option>
+                    <option value="doz">doz</option>
+                    <option value="pair">pair</option>
+                    <option value="roll">roll</option>
+                    <option value="tube">tube</option>
+                    <option value="gal">gal</option>
                     <option value="lbs">lbs</option>
                     <option value="sqft">sqft</option>
                     <option value="lnft">lnft</option>
@@ -916,7 +925,7 @@ const ProductList = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Description
+                    Description (populates Material field on line items)
                   </label>
                   <textarea
                     value={formData.description}
@@ -994,7 +1003,10 @@ const ProductList = () => {
                   <li>modelNumber</li>
                   <li>description</li>
                   <li>category</li>
-                  <li>unit (ea, lbs, sqft, lnft)</li>
+                  <li>
+                    unit (ea, case, box, bag, set, doz, pair, roll, tube, gal,
+                    lbs, sqft, lnft)
+                  </li>
                   <li>tier (good, better, best)</li>
                   <li>collection</li>
                   <li>imageUrl</li>
