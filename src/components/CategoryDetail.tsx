@@ -27,8 +27,8 @@ const CategoryDetail = () => {
       setLineItems(lineItemsData);
       setError(null);
     } catch (err) {
-      setError("Failed to load category details");
-      console.error("Error loading category:", err);
+      setError("Failed to load section details");
+      console.error("Error loading section:", err);
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ const CategoryDetail = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">Loading category...</div>
+        <div className="text-gray-600">Loading section...</div>
       </div>
     );
   }
@@ -61,7 +61,7 @@ const CategoryDetail = () => {
   if (error || !category) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800">{error || "Category not found"}</p>
+        <p className="text-red-800">{error || "Section not found"}</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ const CategoryDetail = () => {
         <div className="sm:flex-auto">
           <h2 className="text-xl font-semibold text-gray-900">Line Items</h2>
           <p className="mt-2 text-sm text-gray-700">
-            Material line items for this category.
+            Material line items for this section.
           </p>
         </div>
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">

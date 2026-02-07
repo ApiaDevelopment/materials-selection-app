@@ -21,6 +21,11 @@ const ProductList = () => {
     useState<string>("");
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [tierFilters, setTierFilters] = useState({
+    good: false,
+    better: false,
+    best: false,
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
@@ -30,7 +35,11 @@ const ProductList = () => {
   const [allProductVendors, setAllProductVendors] = useState<
     Map<string, ProductVendor[]>
   >(new Map());
-  const [newVendor, setNewVendor] = useState({ vendorId: "", cost: 0 });
+  const [newVendor, setNewVendor] = useState({
+    vendorId: "",
+    cost: 0,
+    sku: "",
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -40,6 +49,8 @@ const ProductList = () => {
     description: "",
     category: "",
     unit: "ea",
+    tier: "" as "" | "good" | "better" | "best",
+    collection: "",
     imageUrl: "",
     productUrl: "",
   });
@@ -94,6 +105,8 @@ const ProductList = () => {
         description: product.description || "",
         category: product.category || "",
         unit: product.unit || "ea",
+        tier: (product.tier || "") as "" | "good" | "better" | "best",
+        collection: product.collection || "",
         imageUrl: product.imageUrl || "",
         productUrl: product.productUrl || "",
       });
@@ -106,6 +119,8 @@ const ProductList = () => {
         description: "",
         category: "",
         unit: "ea",
+        tier: "" as "" | "good" | "better" | "best",
+        collection: "",
         imageUrl: "",
         productUrl: "",
       });
@@ -123,6 +138,8 @@ const ProductList = () => {
       description: "",
       category: "",
       unit: "ea",
+      tier: "" as "" | "good" | "better" | "best",
+      collection: "",
       imageUrl: "",
       productUrl: "",
     });
@@ -131,14 +148,20 @@ const ProductList = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Convert empty string tier to undefined for API compatibility
+      const submitData = {
+        ...formData,
+        tier: formData.tier === "" ? undefined : formData.tier,
+      };
+
       if (editingProduct) {
         const updated = await productService.updateProduct(
           editingProduct.id,
-          formData,
+          submitData,
         );
         setProducts(products.map((p) => (p.id === updated.id ? updated : p)));
       } else {
-        const created = await productService.createProduct(formData);
+        const created = await productService.createProduct(submitData);
         setProducts([...products, created]);
       }
       handleCloseModal();
@@ -177,7 +200,7 @@ const ProductList = () => {
     setIsVendorModalOpen(false);
     setManagingProduct(null);
     setProductVendors([]);
-    setNewVendor({ vendorId: "", cost: 0 });
+    setNewVendor({ vendorId: "", cost: 0, sku: "" });
   };
 
   const handleAddVendor = async () => {
@@ -188,13 +211,14 @@ const ProductList = () => {
         productId: managingProduct.id,
         vendorId: newVendor.vendorId,
         cost: newVendor.cost,
+        sku: newVendor.sku || undefined,
       });
       const updated = [...productVendors, created];
       setProductVendors(updated);
       setAllProductVendors(
         new Map(allProductVendors).set(managingProduct.id, updated),
       );
-      setNewVendor({ vendorId: "", cost: 0 });
+      setNewVendor({ vendorId: "", cost: 0, sku: "" });
     } catch (err) {
       setError("Failed to add vendor");
       console.error("Error adding vendor:", err);
@@ -237,6 +261,25 @@ const ProductList = () => {
     } catch (err) {
       setError("Failed to update cost");
       console.error("Error updating cost:", err);
+    }
+  };
+
+  const handleUpdateSku = async (pv: ProductVendor, newSku: string) => {
+    if (!managingProduct) return;
+    try {
+      const updated = await productVendorService.update(pv.id, {
+        sku: newSku || undefined,
+      });
+      const updatedList = productVendors.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
+      setProductVendors(updatedList);
+      setAllProductVendors(
+        new Map(allProductVendors).set(managingProduct.id, updatedList),
+      );
+    } catch (err) {
+      setError("Failed to update SKU");
+      console.error("Error updating SKU:", err);
     }
   };
 
@@ -336,6 +379,16 @@ const ProductList = () => {
     // Filter by category
     if (filterView === "category" && selectedCategory) {
       if (product.category !== selectedCategory) return false;
+    }
+
+    // Filter by tier - if any tier filter is checked, only show matching tiers
+    const anyTierFilterActive =
+      tierFilters.good || tierFilters.better || tierFilters.best;
+    if (anyTierFilterActive) {
+      if (!product.tier) return false; // Exclude products without tier
+      if (product.tier === "good" && !tierFilters.good) return false;
+      if (product.tier === "better" && !tierFilters.better) return false;
+      if (product.tier === "best" && !tierFilters.best) return false;
     }
 
     // Filter by search term
@@ -493,6 +546,44 @@ const ProductList = () => {
               ))}
           </select>
         )}
+
+        {/* Tier Filter Checkboxes */}
+        <div className="flex items-center gap-3 ml-auto">
+          <span className="text-xs text-gray-600 font-medium">Tier:</span>
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tierFilters.good}
+              onChange={(e) =>
+                setTierFilters({ ...tierFilters, good: e.target.checked })
+              }
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>Good</span>
+          </label>
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tierFilters.better}
+              onChange={(e) =>
+                setTierFilters({ ...tierFilters, better: e.target.checked })
+              }
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>Better</span>
+          </label>
+          <label className="flex items-center gap-1 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tierFilters.best}
+              onChange={(e) =>
+                setTierFilters({ ...tierFilters, best: e.target.checked })
+              }
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>Best</span>
+          </label>
+        </div>
       </div>
 
       {/* Search */}
@@ -534,6 +625,12 @@ const ProductList = () => {
                 </th>
                 <th className="px-2 py-1 text-left font-medium text-gray-600">
                   Unit
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Tier
+                </th>
+                <th className="px-2 py-1 text-left font-medium text-gray-600">
+                  Collection
                 </th>
                 <th className="px-2 py-1 text-left font-medium text-gray-600">
                   Primary Vendor
@@ -591,16 +688,44 @@ const ProductList = () => {
                       {product.unit || "-"}
                     </td>
                     <td className="px-2 py-1 text-gray-900">
+                      {product.tier ? (
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            product.tier === "best"
+                              ? "bg-green-100 text-green-800"
+                              : product.tier === "better"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {product.tier.charAt(0).toUpperCase() +
+                            product.tier.slice(1)}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
+                      {product.collection || "-"}
+                    </td>
+                    <td className="px-2 py-1 text-gray-900">
                       {primaryVendorName ? (
-                        <div className="flex items-center gap-1">
-                          <span>{primaryVendorName}</span>
-                          {hasSecondaryVendors && (
-                            <span
-                              className="px-1 py-0.5 bg-gray-200 text-gray-700 rounded"
-                              title={`+${productVendorList.length - 1} more vendor${productVendorList.length - 1 > 1 ? "s" : ""}`}
-                            >
-                              +{productVendorList.length - 1}
-                            </span>
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span>{primaryVendorName}</span>
+                            {hasSecondaryVendors && (
+                              <span
+                                className="px-1 py-0.5 bg-gray-200 text-gray-700 rounded"
+                                title={`+${productVendorList.length - 1} more vendor${productVendorList.length - 1 > 1 ? "s" : ""}`}
+                              >
+                                +{productVendorList.length - 1}
+                              </span>
+                            )}
+                          </div>
+                          {primaryVendor?.sku && (
+                            <div className="text-gray-500 text-xs">
+                              SKU: {primaryVendor.sku}
+                            </div>
                           )}
                         </div>
                       ) : (
@@ -755,6 +880,40 @@ const ProductList = () => {
                     <option value="lnft">lnft</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Tier
+                  </label>
+                  <select
+                    value={formData.tier}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tier: e.target.value as "" | "good" | "better" | "best",
+                      })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Not specified</option>
+                    <option value="good">Good</option>
+                    <option value="better">Better</option>
+                    <option value="best">Best</option>
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Collection
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.collection}
+                    onChange={(e) =>
+                      setFormData({ ...formData, collection: e.target.value })
+                    }
+                    placeholder="e.g., Artisan Series, Pro Collection"
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Description
@@ -836,6 +995,8 @@ const ProductList = () => {
                   <li>description</li>
                   <li>category</li>
                   <li>unit (ea, lbs, sqft, lnft)</li>
+                  <li>tier (good, better, best)</li>
+                  <li>collection</li>
                   <li>imageUrl</li>
                   <li>productUrl</li>
                 </ul>
@@ -885,13 +1046,13 @@ const ProductList = () => {
                 <h3 className="text-xs font-medium text-gray-700 mb-2">
                   Add Vendor
                 </h3>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-12 gap-2">
                   <select
                     value={newVendor.vendorId}
                     onChange={(e) =>
                       setNewVendor({ ...newVendor, vendorId: e.target.value })
                     }
-                    className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    className="col-span-4 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Vendor...</option>
                     {vendors
@@ -905,7 +1066,19 @@ const ProductList = () => {
                         </option>
                       ))}
                   </select>
-                  <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    placeholder="Vendor SKU"
+                    value={newVendor.sku || ""}
+                    onChange={(e) =>
+                      setNewVendor({
+                        ...newVendor,
+                        sku: e.target.value,
+                      })
+                    }
+                    className="col-span-3 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <div className="col-span-3 flex items-center gap-1">
                     <span className="text-xs text-gray-600">$</span>
                     <input
                       type="number"
@@ -918,7 +1091,7 @@ const ProductList = () => {
                           cost: parseFloat(e.target.value) || 0,
                         })
                       }
-                      className="w-24 px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                     />
                     <span className="text-xs text-gray-600">
                       / {managingProduct?.unit || "ea"}
@@ -927,7 +1100,7 @@ const ProductList = () => {
                   <button
                     onClick={handleAddVendor}
                     disabled={!newVendor.vendorId}
-                    className="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    className="col-span-2 px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
                     Add
                   </button>
@@ -967,19 +1140,45 @@ const ProductList = () => {
                                 </span>
                               )}
                             </div>
+                            {pv.sku && (
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                SKU: {pv.sku}
+                              </div>
+                            )}
                           </div>
+                          <input
+                            type="text"
+                            placeholder="SKU"
+                            value={pv.sku || ""}
+                            onChange={(e) => {
+                              // Update local state immediately for smooth typing
+                              const updatedList = productVendors.map((item) =>
+                                item.id === pv.id
+                                  ? { ...item, sku: e.target.value }
+                                  : item,
+                              );
+                              setProductVendors(updatedList);
+                            }}
+                            onBlur={(e) => handleUpdateSku(pv, e.target.value)}
+                            className="w-32 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500"
+                          />
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-gray-500">$</span>
                             <input
                               type="number"
                               step="0.01"
                               value={pv.cost}
-                              onChange={(e) =>
-                                handleUpdateCost(
-                                  pv,
-                                  parseFloat(e.target.value) || 0,
-                                )
-                              }
+                              onChange={(e) => {
+                                // Update local state immediately for smooth typing
+                                const newCost = parseFloat(e.target.value) || 0;
+                                const updatedList = productVendors.map(
+                                  (item) =>
+                                    item.id === pv.id
+                                      ? { ...item, cost: newCost }
+                                      : item,
+                                );
+                                setProductVendors(updatedList);
+                              }}
                               onBlur={(e) =>
                                 handleUpdateCost(
                                   pv,

@@ -226,6 +226,7 @@ Product detection is inconsistent due to simple substring matching logic. Button
 ### 🔒 What Data the AI Can See (Project Chat Mode)
 
 **Current project ONLY** - completely isolated:
+
 - Project details (name, customer, address, status, dates, budget)
 - Categories for this project only (filtered by projectId)
 - Line items for this project only (via ProjectIdIndex)
@@ -234,18 +235,21 @@ Product detection is inconsistent due to simple substring matching logic. Button
 - No access to full product catalog (for chat context)
 
 **Why this matters:**
+
 - Fast performance (indexed queries on single project)
 - Privacy - each project's data is isolated
 - Predictable context size (500-2000 tokens per project)
 - AI can't accidentally reference data from wrong projects
 
 **Product catalog access:**
+
 - ALL products ARE scanned after AI responds (for action button detection only)
 - NOT sent to AI as context
 - Used only to match product names/model numbers in AI's response text
 - Enables action buttons without bloating AI context
 
 **Future enhancement (discussed Feb 6):**
+
 - Cross-project intelligence on-demand (see "Cross-Project Intelligence" in Next Steps)
 - Would allow: "Show me similar projects" or "What did we use in other bathrooms?"
 - Would still not impact page load times (runs only when explicitly asked)

@@ -63,6 +63,8 @@ export interface Product {
   description?: string;
   category?: string;
   unit?: string;
+  tier?: "good" | "better" | "best";
+  collection?: string;
   imageUrl?: string;
   productUrl?: string;
   createdAt: string;
@@ -223,6 +225,8 @@ export interface CreateProductRequest {
   description?: string;
   category?: string;
   unit?: string;
+  tier?: "good" | "better" | "best";
+  collection?: string;
   imageUrl?: string;
   productUrl?: string;
 }
@@ -234,6 +238,8 @@ export interface UpdateProductRequest {
   description?: string;
   category?: string;
   unit?: string;
+  tier?: "good" | "better" | "best";
+  collection?: string;
   imageUrl?: string;
   productUrl?: string;
 }
@@ -277,6 +283,7 @@ export interface ProductVendor {
   productId: string;
   vendorId: string;
   cost: number;
+  sku?: string;
   isPrimary: boolean;
   createdAt: string;
   updatedAt: string;
@@ -286,10 +293,12 @@ export interface CreateProductVendorRequest {
   productId: string;
   vendorId: string;
   cost: number;
+  sku?: string;
   isPrimary?: boolean;
 }
 
 export interface UpdateProductVendorRequest {
   cost?: number;
+  sku?: string;
   isPrimary?: boolean;
 }

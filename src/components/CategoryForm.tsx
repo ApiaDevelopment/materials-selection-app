@@ -58,8 +58,8 @@ const CategoryForm = () => {
         navigate(`/projects/${projectId}`);
       }
     } catch (err) {
-      setError(`Failed to ${isEditMode ? "update" : "create"} category`);
-      console.error("Error saving category:", err);
+      setError(`Failed to ${isEditMode ? "update" : "create"} section`);
+      console.error("Error saving section:", err);
     } finally {
       setLoading(false);
     }
@@ -77,12 +77,12 @@ const CategoryForm = () => {
       <div className="md:grid md:grid-cols-3 md:gap-6">
         <div className="md:col-span-1">
           <h3 className="text-lg font-medium leading-6 text-gray-900">
-            {isEditMode ? "Edit Category" : "Create Category"}
+            {isEditMode ? "Edit Section" : "Create Section"}
           </h3>
           <p className="mt-1 text-sm text-gray-600">
             {isEditMode
-              ? "Update the category information below."
-              : "Create a new category to organize your materials."}
+              ? "Update the section information below."
+              : "Create a new section to organize your materials."}
           </p>
         </div>
         <div className="mt-5 md:mt-0 md:col-span-2">
@@ -100,7 +100,7 @@ const CategoryForm = () => {
                     htmlFor="name"
                     className="block text-sm font-medium text-gray-700"
                   >
-                    Category Name
+                    Section Name
                   </label>
                   <input
                     type="text"

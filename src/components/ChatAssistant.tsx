@@ -220,7 +220,7 @@ export function ChatAssistant({
 
       if (data.success) {
         const categoryName =
-          categories.find((c) => c.id === categoryId)?.name || "category";
+          categories.find((c) => c.id === categoryId)?.name || "section";
         const successMessage: Message = {
           role: "assistant",
           content: `✅ Added ${pendingAction.data.productName} to ${categoryName}`,
@@ -456,7 +456,7 @@ export function ChatAssistant({
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-md">
             <h3 className="text-sm font-semibold text-gray-900 mb-2">
-              Select Category
+              Select Section
             </h3>
             <p className="text-xs text-gray-600 mb-3">
               Where would you like to add{" "}

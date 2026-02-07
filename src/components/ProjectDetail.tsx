@@ -221,7 +221,7 @@ const ProjectDetail = () => {
 
   const handleAddCategory = async () => {
     if (!newCategory.name) {
-      alert("Please enter a category name");
+      alert("Please enter a section name");
       return;
     }
 
@@ -249,24 +249,24 @@ const ProjectDetail = () => {
         allowance: 0,
       });
     } catch (err) {
-      alert(`Failed to ${editingCategory ? "update" : "create"} category`);
+      alert(`Failed to ${editingCategory ? "update" : "create"} section`);
       console.error(
-        `Error ${editingCategory ? "updating" : "creating"} category:`,
+        `Error ${editingCategory ? "updating" : "creating"} section:`,
         err,
       );
     }
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    if (!confirm("Are you sure you want to delete this section?")) return;
 
     try {
       await categoryService.delete(categoryId);
       setCategories(categories.filter((c) => c.id !== categoryId));
       setLineItems(lineItems.filter((item) => item.categoryId !== categoryId));
     } catch (err) {
-      alert("Failed to delete category");
-      console.error("Error deleting category:", err);
+      alert("Failed to delete section");
+      console.error("Error deleting section:", err);
     }
   };
 
@@ -1240,7 +1240,7 @@ const ProjectDetail = () => {
               onClick={() => setShowCategoryModal(true)}
               className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
             >
-              ➕ Category
+              ➕ Section
             </button>
             <button
               onClick={() => {
@@ -1272,7 +1272,7 @@ const ProjectDetail = () => {
                 : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
             }`}
           >
-            By Category
+            By Section
           </button>
           <button
             onClick={() => setViewMode("vendor")}
@@ -1317,7 +1317,7 @@ const ProjectDetail = () => {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {categories.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
-              No categories yet. Add one to get started!
+              No sections yet. Add one to get started!
             </p>
           ) : (
             categories.map((category) => {
@@ -2959,12 +2959,12 @@ const ProjectDetail = () => {
         </div>
       )}
 
-      {/* Add Category Modal */}
+      {/* Add Section Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-md">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              {editingCategory ? "Edit Category" : "Add New Category"}
+              {editingCategory ? "Edit Section" : "Add New Section"}
             </h3>
             <div className="space-y-3">
               <div>
@@ -2973,14 +2973,50 @@ const ProjectDetail = () => {
                 </label>
                 <input
                   type="text"
+                  list="section-names"
                   value={newCategory.name}
                   onChange={(e) =>
                     setNewCategory({ ...newCategory, name: e.target.value })
                   }
                   className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  placeholder="e.g., Kitchen, Master Bath"
+                  placeholder="Select or type a section name"
                   autoFocus
                 />
+                <datalist id="section-names">
+                  <option value="Kitchen" />
+                  <option value="Master Bathroom" />
+                  <option value="Master Bedroom" />
+                  <option value="Bathroom" />
+                  <option value="Guest Bathroom" />
+                  <option value="Living Room" />
+                  <option value="Dining Room" />
+                  <option value="Family Room" />
+                  <option value="Bedroom" />
+                  <option value="Laundry Room" />
+                  <option value="Garage" />
+                  <option value="Basement" />
+                  <option value="Attic" />
+                  <option value="Office" />
+                  <option value="Entryway" />
+                  <option value="Mudroom" />
+                  <option value="Powder Room" />
+                  <option value="Pantry" />
+                  <option value="Great Room" />
+                  <option value="Sunroom" />
+                  <option value="Patio" />
+                  <option value="Deck" />
+                  <option value="Exterior" />
+                  <option value="Fixtures" />
+                  <option value="Lighting" />
+                  <option value="Plumbing" />
+                  <option value="Electrical" />
+                  <option value="Flooring" />
+                  <option value="Cabinetry" />
+                  <option value="Appliances" />
+                  <option value="Hardware" />
+                  <option value="Trim" />
+                  <option value="Paint & Finishes" />
+                </datalist>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -3038,7 +3074,7 @@ const ProjectDetail = () => {
                 onClick={handleAddCategory}
                 className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
               >
-                {editingCategory ? "Update Category" : "Add Category"}
+                {editingCategory ? "Update Section" : "Add Section"}
               </button>
             </div>
           </div>
