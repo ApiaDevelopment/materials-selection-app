@@ -28,10 +28,13 @@ const ProjectList = () => {
   const [formData, setFormData] = useState<CreateProjectRequest>({
     name: "",
     description: "",
+    projectNumber: "",
     customerName: "",
     address: "",
     email: "",
     phone: "",
+    mobilePhone: "",
+    preferredContactMethod: "",
     estimatedStartDate: "",
     type: "other",
     status: "planning",
@@ -78,6 +81,8 @@ const ProjectList = () => {
         address: project.address || "",
         email: project.email || "",
         phone: project.phone || "",
+        mobilePhone: project.mobilePhone || "",
+        preferredContactMethod: project.preferredContactMethod || "",
         estimatedStartDate: project.estimatedStartDate || "",
         type: project.type || "other",
         status: project.status || "planning",
@@ -92,6 +97,8 @@ const ProjectList = () => {
         address: "",
         email: "",
         phone: "",
+        mobilePhone: "",
+        preferredContactMethod: "",
         estimatedStartDate: "",
         type: "other",
         status: "planning",
@@ -126,6 +133,8 @@ const ProjectList = () => {
       address: "",
       email: "",
       phone: "",
+      mobilePhone: "",
+      preferredContactMethod: "",
       estimatedStartDate: "",
       type: "other",
       status: "planning",
@@ -201,6 +210,8 @@ const ProjectList = () => {
       address: "",
       email: "",
       phone: "",
+      mobilePhone: "",
+      preferredContactMethod: "",
       estimatedStartDate: "",
       type: "other",
       status: "planning",
@@ -512,7 +523,10 @@ const ProjectList = () => {
                     type="text"
                     value={formData.projectNumber || ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, projectNumber: e.target.value })
+                      setFormData({
+                        ...formData,
+                        projectNumber: e.target.value,
+                      })
                     }
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                   />

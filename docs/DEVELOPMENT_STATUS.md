@@ -222,6 +222,7 @@ arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-
 Completely new Salesforce integration that allows users to create projects from Salesforce opportunities. Implementation uses separate modal and state management to avoid interfering with existing project creation workflow.
 
 **Features:**
+
 - Two-step workflow: Select opportunity → Pre-populated project form
 - Fetches 43+ active Salesforce opportunities
 - Pre-fills project data from Salesforce (client name, address, contact info, opportunity ID)
@@ -231,21 +232,25 @@ Completely new Salesforce integration that allows users to create projects from 
 - Creates project with opportunityId reference for future lookups
 
 **Architecture:**
+
 - Separate Lambda function: MaterialsSelection-Salesforce-API
 - Separate modal state variables (no shared state with regular project creation)
 - Separate submit handlers
 - Backend changes: Added 3 optional fields to projects (mobilePhone, preferredContactMethod, opportunityId)
 
 **Files Modified:**
+
 - `lambda/index.js` - Added 3 optional fields to createProject function
 - `src/components/ProjectList.tsx` - Added Salesforce modal and workflow
 - Both regular and Salesforce modals now have identical field sets for consistency
 
 **Git Commits:**
-- `62ae9e2` - "Add Salesforce opportunity integration"  
+
+- `62ae9e2` - "Add Salesforce opportunity integration"
 - `31833a6` - "Add Mobile Phone and Preferred Contact Method fields to regular project modal"
 
 **User Verification:**
+
 - ✅ "That is working as expected" (Salesforce workflow)
 - ✅ "OK. that works" (Loading spinner)
 

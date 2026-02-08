@@ -29,18 +29,21 @@
 ### Technology Stack
 
 **Frontend:**
+
 - React 18 + TypeScript
 - Vite 7.2.5 (rolldown experimental)
 - TailwindCSS v4
 - React Router for navigation
 
 **Backend:**
+
 - AWS Lambda (Node.js 20.x)
 - DynamoDB for data persistence
 - API Gateway REST API
 - CloudFront CDN
 
 **Build Output:**
+
 - ~468 KB JavaScript bundle
 - ~37 KB CSS bundle
 - Single-page application
@@ -77,6 +80,7 @@
 ### Component Architecture
 
 **Main Components:**
+
 - `ProjectList.tsx` - Project list view with two separate modals:
   - Regular CRUD modal (create/edit projects)
   - Salesforce modal (two-step: opportunity list → pre-filled form)
@@ -89,6 +93,7 @@
 - `ChatAssistant.tsx` - AI assistant (AWS Bedrock integration)
 
 **Service Layer:**
+
 - `src/services/projectService.ts` - Project CRUD operations
 - `src/services/categoryService.ts` - Category operations
 - `src/services/lineItemService.ts` - Line item operations
@@ -97,6 +102,7 @@
 - `src/services/productService.ts` - Product and product-vendor operations
 
 **Type Definitions:**
+
 - `src/types/index.ts` - All TypeScript interfaces (Project, Product, Category, LineItem, etc.)
 
 ---
@@ -106,6 +112,7 @@
 ### Background: The Original Problem
 
 **Previous State (Before Feb 8, 2026):**
+
 - Salesforce modal existed but had mysterious rendering issues
 - Modal would open with gray overlay and table headers
 - Content (opportunity list) wouldn't render despite:
@@ -122,6 +129,7 @@
 **Architecture Decision:** Separate Salesforce integration without touching existing modal code
 
 **Implementation:**
+
 1. **Separate Lambda Function:** MaterialsSelection-Salesforce-API
    - Completely independent from main MaterialsSelection-API
    - Handles Salesforce OAuth authentication
@@ -153,6 +161,7 @@
 ### Technical Implementation Details
 
 **Salesforce Modal State Flow:**
+
 ```typescript
 // Step 1: User clicks "Create from Salesforce" button
 setShowSalesforceModal(true) → fetch opportunities → display table
@@ -165,6 +174,7 @@ handleSalesforceSubmit() → setSavingSalesforceProject(true) → projectService
 ```
 
 **Regular Modal State Flow:**
+
 ```typescript
 // Create: User clicks "Create Project" button
 setShowModal(true) → setFormData(initialData)
@@ -181,9 +191,9 @@ handleSubmit() → setSavingProject(true) → projectService.create/update() →
 ### Code Changes Made
 
 **Files Modified:**
+
 1. `lambda/index.js` (lines 354-371)
    - Added 3 lines to createProject function to save new fields
-   
 2. `src/components/ProjectList.tsx` (multiple sections)
    - Added Salesforce modal state variables (lines ~70-75)
    - Added handleSelectOpportunity function (lines ~180-195)
@@ -196,36 +206,42 @@ handleSubmit() → setSavingProject(true) → projectService.create/update() →
    - Updated submit buttons with loading states (lines ~600, 885)
 
 **Git Commits:**
+
 - `62ae9e2` - "Add Salesforce opportunity integration"
 - `31833a6` - "Add Mobile Phone and Preferred Contact Method fields to regular project modal"
 
 ### What Worked Well
 
 ✅ **Isolation Strategy:**
+
 - Salesforce integration is completely separate from existing project creation
 - If Salesforce Lambda fails, regular project creation still works
 - Can disable Salesforce button without affecting anything else
 - Testing one doesn't impact the other
 
 ✅ **Backend Changes Were Minimal:**
+
 - Added 3 optional fields to Lambda
 - No breaking changes to existing API
 - All existing projects continue to work
 - Empty strings as defaults prevent null/undefined issues
 
 ✅ **Two-Step User Flow:**
+
 - Users understand they're doing something different ("Create from Salesforce" vs "Create Project")
 - Opportunity selection is clear and straightforward
 - Pre-populated data saves time but is still editable
 - Can cancel at any point without side effects
 
 ✅ **Loading States:**
+
 - Users get immediate visual feedback when clicking submit
 - Button text changes ("Create Project" → "Creating...")
 - Button disabled during save prevents double-clicks
 - Consistent pattern across both modals
 
 ✅ **Error Handling:**
+
 - Try-catch blocks prevent crashes
 - Alerts inform users of failures
 - Finally blocks ensure loading states always reset
@@ -234,11 +250,13 @@ handleSubmit() → setSavingProject(true) → projectService.create/update() →
 ### What Could Have Gone Better
 
 ⚠️ **Modal Code Duplication:**
+
 - Regular modal and Salesforce modal have ~90% identical form fields
 - Could have created shared FormFields component
 - However, this was intentional to avoid the consolidation risks (see below)
 
 ⚠️ **Field Additions Required Two Updates:**
+
 - When adding Mobile Phone and Preferred Contact Method, had to update both modals
 - Risk that they could get out of sync over time
 - Trade-off: duplication vs. complexity
@@ -252,12 +270,14 @@ handleSubmit() → setSavingProject(true) → projectService.create/update() →
 **Risk:** Modifying existing modal could break project editing
 
 **How We Avoided:**
+
 - Created completely separate Salesforce modal
 - Existing modal code untouched until we added new fields
 - When adding fields, we carefully preserved all existing logic
 - Edit functionality never tested with Salesforce data flow
 
 **Validation:**
+
 - User confirmed: "That is working as expected" (after initial Salesforce implementation)
 - User confirmed: "OK. that works" (after adding loading spinner)
 - No reports of broken edit functionality
@@ -268,16 +288,19 @@ handleSubmit() → setSavingProject(true) → projectService.create/update() →
 When adding Mobile Phone and Preferred Contact Method to regular modal, we analyzed two options:
 
 **Option 1 (Chosen):** Add fields separately to both modals
+
 - Pros: Low risk, maintains separation, predictable behavior
 - Cons: Code duplication
 
 **Option 2 (Rejected):** Consolidate into single modal with mode detection
+
 - Pros: DRY principle, single source of truth
 - Cons: High complexity, risk of breaking edit functionality, mode detection bugs
 
 **Decision:** User chose Option 1 explicitly: "I agree lets go with option 1"
 
 **Why This Was Wise:**
+
 - Edit functionality is critical to users' workflow
 - Bug in consolidated modal could break both create AND edit
 - Separate modals meant Salesforce issues couldn't impact regular workflow
@@ -288,6 +311,7 @@ When adding Mobile Phone and Preferred Contact Method to regular modal, we analy
 **Risk:** Shared state between workflows could cause race conditions
 
 **How We Avoided:**
+
 - Separate state variables for each workflow:
   - Regular: `showModal`, `editingProject`, `formData`, `savingProject`
   - Salesforce: `showSalesforceModal`, `showSalesforceForm`, `selectedOpportunity`, `salesforceOpportunities`, `savingSalesforceProject`
@@ -295,6 +319,7 @@ When adding Mobile Phone and Preferred Contact Method to regular modal, we analy
 - Proper cleanup in close handlers
 
 **Example of Potential Bug Avoided:**
+
 ```typescript
 // BAD (if we had consolidated):
 const handleSubmit = async () => {
@@ -302,18 +327,18 @@ const handleSubmit = async () => {
     // What if isSalesforceMode is stale?
     // What if user opened SF modal then regular modal?
   }
-}
+};
 
 // GOOD (what we did):
 const handleSubmit = async () => {
   // Only handles regular modal
   // No mode checking needed
-}
+};
 
 const handleSalesforceSubmit = async () => {
   // Only handles Salesforce modal
   // No mode checking needed
-}
+};
 ```
 
 ### 4. Lambda Complexity
@@ -321,12 +346,14 @@ const handleSalesforceSubmit = async () => {
 **Risk:** Complex conditional logic in Lambda based on "is this from Salesforce?"
 
 **How We Avoided:**
+
 - Made all new fields optional
 - No special handling for Salesforce projects in createProject function
 - opportunityId is just another field like any other
 - Can query by opportunityId later if needed, but it's not treated specially
 
 **What We Didn't Do (Good):**
+
 ```javascript
 // We DIDN'T do this:
 if (data.opportunityId) {
@@ -337,6 +364,7 @@ if (data.opportunityId) {
 ```
 
 **What We Did (Better):**
+
 ```javascript
 // We just added the fields neutrally:
 mobilePhone: data.mobilePhone || "",
@@ -349,6 +377,7 @@ opportunityId: data.opportunityId || ""
 **Risk:** Users confused about which button to use
 
 **How We Avoided:**
+
 - Clear, distinct button labels:
   - "Create Project" (regular)
   - "Create from Salesforce" (SF integration)
@@ -361,6 +390,7 @@ opportunityId: data.opportunityId || ""
 **Risk:** Deploying Salesforce feature could break existing features
 
 **How We Avoided:**
+
 - Backend changes were additive only (new optional fields)
 - Frontend changes were additive (new modal, new states)
 - Tested regular project creation still worked after deployment
@@ -375,6 +405,7 @@ opportunityId: data.opportunityId || ""
 **Risk:** Massive commit with all changes makes rollback difficult
 
 **How We Avoided:**
+
 - Separate commits for logical changes:
   - Commit 1: Salesforce integration feature
   - Commit 2: Regular modal field additions
@@ -388,6 +419,7 @@ opportunityId: data.opportunityId || ""
 ### Objective
 
 Add ability to generate PowerPoint (.pptx) presentations from the Project Detail page containing:
+
 1. Cover slide (client info, project name, designer)
 2. Section divider slides (categories with budget breakdown)
 3. Product detail slides (one per line item with image, specs, vendor info, URL)
@@ -395,9 +427,10 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 ### Requirements (Based on Example Files)
 
 **Data Needed:**
+
 - Project: name, clientName, clientAddress, projectNumber, designer name
 - Categories: name, line items grouped by category
-- Line Items: 
+- Line Items:
   - Product name
   - Vendor name
   - Manufacturer/brand
@@ -410,6 +443,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
   - Notes (if any)
 
 **PowerPoint Structure:**
+
 - Slide 1: Title/cover
 - Slide 2-N: Section dividers (one per category)
 - Remaining: Product detail slides (one per line item)
@@ -423,6 +457,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 **Processing:** In browser
 
 **Implementation:**
+
 1. Add `pptxgenjs` to package.json dependencies
 2. Create new service: `src/services/pptxService.ts`
 3. Add "Export to PowerPoint" button in ProjectDetail component
@@ -435,6 +470,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 6. Trigger browser download
 
 **Pros:**
+
 - ✅ No backend changes required
 - ✅ Uses existing API endpoints (getProject, getCategories, getLineItems, getProduct)
 - ✅ Faster to implement (2-3 hours)
@@ -445,12 +481,14 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 - ✅ Easy to test locally during development
 
 **Cons:**
+
 - ⚠️ Adds ~200 KB to frontend bundle
 - ⚠️ Processing happens on user's device (slower devices = slower generation)
 - ⚠️ Network calls to fetch images happen from browser (CORS could be issue)
 - ⚠️ Can't store generated presentations for later
 
 **Risk Assessment:** LOW
+
 - Library is mature and well-documented
 - All data already available via existing APIs
 - No backend deployment risk
@@ -463,6 +501,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 **Processing:** In Lambda function
 
 **Implementation:**
+
 1. Create new Lambda function: MaterialsSelection-PPTXGenerator
 2. Add pptxgenjs to Lambda dependencies
 3. Create new API Gateway endpoint: POST /projects/{projectId}/generate-pptx
@@ -473,12 +512,14 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
    - b) Upload to S3, return pre-signed URL
 
 **Pros:**
+
 - ✅ No bundle size increase for frontend
 - ✅ Consistent performance regardless of user's device
 - ✅ Can cache/store presentations in S3 if needed
 - ✅ Could add to background job queue for very large projects
 
 **Cons:**
+
 - ⚠️ New Lambda function to create and maintain
 - ⚠️ New API Gateway endpoint and permissions
 - ⚠️ Lambda cold starts add latency (3-5 seconds first time)
@@ -487,6 +528,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 - ⚠️ Additional costs (Lambda execution + potential S3 storage)
 
 **Risk Assessment:** MEDIUM
+
 - More moving parts (Lambda, API Gateway, potential S3)
 - Requires backend deployment
 - Binary response handling can be tricky
@@ -495,6 +537,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 ### Recommended Approach: **Option A (Client-Side)**
 
 **Rationale:**
+
 1. **Faster to implement and test**
 2. **Lower risk** - no backend changes means can't break existing functionality
 3. **Matches our architectural pattern** - keep complex operations separate
@@ -508,15 +551,17 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 **Goal:** Verify pptxgenjs works with our stack, generate minimal presentation
 
 1. Install package:
+
    ```powershell
    npm install pptxgenjs --save
    ```
 
 2. Create service file:
+
    ```typescript
    // src/services/pptxService.ts
    import pptxgen from "pptxgenjs";
-   
+
    export const generateBasicPPTX = () => {
      const pptx = new pptxgen();
      const slide = pptx.addSlide();
@@ -526,6 +571,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
    ```
 
 3. Add button to ProjectDetail.tsx:
+
    ```typescript
    <button onClick={() => generateBasicPPTX()}>
      Test PPTX
@@ -545,11 +591,12 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 **Goal:** Fetch all required data for presentation
 
 1. Add functions to pptxService.ts:
+
    ```typescript
    export const fetchPresentationData = async (projectId: string) => {
      const project = await projectService.getById(projectId);
      const categories = await categoryService.getByProject(projectId);
-     
+
      const categoriesWithLineItems = await Promise.all(
        categories.map(async (category) => {
          const lineItems = await lineItemService.getByCategory(category.id);
@@ -557,12 +604,12 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
            lineItems.map(async (lineItem) => {
              const product = await productService.getById(lineItem.productId);
              return { ...lineItem, product };
-           })
+           }),
          );
          return { ...category, lineItems: lineItemsWithProducts };
-       })
+       }),
      );
-     
+
      return { project, categories: categoriesWithLineItems };
    };
    ```
@@ -570,6 +617,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 2. Test with console.log to verify data structure
 
 **Checkpoint:** Verify all required data is fetching correctly. Check for:
+
 - Missing categories
 - Missing line items
 - Missing products
@@ -586,34 +634,53 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
    - Colors
 
 2. Implement cover slide:
+
    ```typescript
    const createCoverSlide = (pptx: pptxgen, project: Project) => {
      const slide = pptx.addSlide();
-     
+
      // Client name (top)
      slide.addText(project.clientName, {
-       x: 1, y: 1, w: 8, h: 0.5,
-       fontSize: 24, bold: true, align: "center"
+       x: 1,
+       y: 1,
+       w: 8,
+       h: 0.5,
+       fontSize: 24,
+       bold: true,
+       align: "center",
      });
-     
+
      // Address
      slide.addText(project.clientAddress, {
-       x: 1, y: 1.5, w: 8, h: 0.5,
-       fontSize: 18, align: "center"
+       x: 1,
+       y: 1.5,
+       w: 8,
+       h: 0.5,
+       fontSize: 18,
+       align: "center",
      });
-     
+
      // Material Selections title
      slide.addText("Material Selections", {
-       x: 1, y: 3, w: 8, h: 1,
-       fontSize: 36, bold: true, align: "center"
+       x: 1,
+       y: 3,
+       w: 8,
+       h: 1,
+       fontSize: 36,
+       bold: true,
+       align: "center",
      });
-     
+
      // Project number
      slide.addText(project.projectNumber, {
-       x: 1, y: 4.5, w: 8, h: 0.5,
-       fontSize: 16, align: "center"
+       x: 1,
+       y: 4.5,
+       w: 8,
+       h: 0.5,
+       fontSize: 16,
+       align: "center",
      });
-     
+
      // Designer name (bottom - will need to add this field?)
      // slide.addText(project.designerName, ...);
    };
@@ -629,41 +696,56 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 
 1. Study examples for format
 2. Implement:
+
    ```typescript
    const createSectionSlide = (
      pptx: pptxgen,
      category: Category,
-     lineItems: LineItemWithProduct[]
+     lineItems: LineItemWithProduct[],
    ) => {
      const slide = pptx.addSlide();
-     
+
      // Category name
      slide.addText(category.name, {
-       x: 1, y: 1, w: 8, h: 1,
-       fontSize: 28, bold: true
+       x: 1,
+       y: 1,
+       w: 8,
+       h: 1,
+       fontSize: 28,
+       bold: true,
      });
-     
+
      // Divider line
      slide.addText("_".repeat(70), {
-       x: 1, y: 1.8, w: 8, h: 0.2,
-       fontSize: 12
+       x: 1,
+       y: 1.8,
+       w: 8,
+       h: 0.2,
+       fontSize: 12,
      });
-     
+
      // Line items breakdown
      let yPos = 2.2;
-     lineItems.forEach(item => {
-       slide.addText(
-         `$${item.price || 0} ${item.product.name}`,
-         { x: 1, y: yPos, w: 8, h: 0.3, fontSize: 14 }
-       );
+     lineItems.forEach((item) => {
+       slide.addText(`$${item.price || 0} ${item.product.name}`, {
+         x: 1,
+         y: yPos,
+         w: 8,
+         h: 0.3,
+         fontSize: 14,
+       });
        yPos += 0.4;
      });
-     
+
      // Total
      const total = lineItems.reduce((sum, item) => sum + (item.price || 0), 0);
      slide.addText(`Total Allowances: $${total.toFixed(2)}`, {
-       x: 1, y: yPos + 0.2, w: 8, h: 0.4,
-       fontSize: 16, bold: true
+       x: 1,
+       y: yPos + 0.2,
+       w: 8,
+       h: 0.4,
+       fontSize: 16,
+       bold: true,
      });
    };
    ```
@@ -677,77 +759,112 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 **Goal:** Create product slides with images, specs, and links
 
 1. Implement basic product slide:
+
    ```typescript
    const createProductSlide = (
      pptx: pptxgen,
-     lineItem: LineItemWithProduct
+     lineItem: LineItemWithProduct,
    ) => {
      const slide = pptx.addSlide();
      const { product } = lineItem;
-     
+
      // Product name
      slide.addText(product.name, {
-       x: 0.5, y: 0.5, w: 4, h: 0.5,
-       fontSize: 18, bold: true
+       x: 0.5,
+       y: 0.5,
+       w: 4,
+       h: 0.5,
+       fontSize: 18,
+       bold: true,
      });
-     
+
      // Status/Option number
      slide.addText(lineItem.status || "Final", {
-       x: 5, y: 0.5, w: 4, h: 0.5,
-       fontSize: 16
+       x: 5,
+       y: 0.5,
+       w: 4,
+       h: 0.5,
+       fontSize: 16,
      });
-     
+
      // Vendor
      slide.addText(`Vendor: ${lineItem.vendorName || "TBD"}`, {
-       x: 0.5, y: 1.2, w: 9, h: 0.3,
-       fontSize: 14
+       x: 0.5,
+       y: 1.2,
+       w: 9,
+       h: 0.3,
+       fontSize: 14,
      });
-     
+
      // Description
      slide.addText(product.description || "", {
-       x: 0.5, y: 1.6, w: 9, h: 0.5,
-       fontSize: 12
+       x: 0.5,
+       y: 1.6,
+       w: 9,
+       h: 0.5,
+       fontSize: 12,
      });
-     
+
      // Model number
      if (product.sku) {
        slide.addText(`Model # ${product.sku}`, {
-         x: 0.5, y: 2.2, w: 9, h: 0.3,
-         fontSize: 12, italic: true
+         x: 0.5,
+         y: 2.2,
+         w: 9,
+         h: 0.3,
+         fontSize: 12,
+         italic: true,
        });
      }
-     
+
      // Price
      if (lineItem.price) {
        slide.addText(`$${lineItem.price}`, {
-         x: 0.5, y: 2.6, w: 9, h: 0.3,
-         fontSize: 14, bold: true
+         x: 0.5,
+         y: 2.6,
+         w: 9,
+         h: 0.3,
+         fontSize: 14,
+         bold: true,
        });
      }
-     
+
      // URL (hyperlink)
      if (product.productUrl) {
        slide.addText(product.productUrl, {
-         x: 0.5, y: 3.0, w: 9, h: 0.3,
-         fontSize: 10, color: "0000FF", underline: true,
-         hyperlink: { url: product.productUrl }
+         x: 0.5,
+         y: 3.0,
+         w: 9,
+         h: 0.3,
+         fontSize: 10,
+         color: "0000FF",
+         underline: true,
+         hyperlink: { url: product.productUrl },
        });
      }
-     
+
      // Product image (if available)
      if (product.imageUrl) {
        // pptxgenjs can embed images from URLs
        slide.addImage({
          path: product.imageUrl,
-         x: 0.5, y: 3.5, w: 3, h: 2.5
+         x: 0.5,
+         y: 3.5,
+         w: 3,
+         h: 2.5,
        });
      }
-     
+
      // Notes
      if (lineItem.notes) {
        slide.addText(lineItem.notes, {
-         x: 0.5, y: 6.2, w: 9, h: 0.4,
-         fontSize: 11, italic: true, color: "666666"
+         x: 0.5,
+         y: 6.2,
+         w: 9,
+         h: 0.4,
+         fontSize: 11,
+         italic: true,
+         color: "666666",
        });
      }
    };
@@ -758,12 +875,14 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 4. Test URL hyperlinking
 
 **Checkpoint:** This is most likely place for issues:
+
 - Image CORS problems (product images from external sites)
 - Image loading failures
 - URL formatting issues
 - Layout overflow with long descriptions
 
 **Mitigation Strategy for Images:**
+
 - Handle image load failures gracefully (skip image, show placeholder text)
 - Test with both HTTP and HTTPS image URLs
 - Consider adding image proxy if CORS is an issue
@@ -773,38 +892,39 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 **Goal:** Wire everything together with proper UX
 
 1. Create main generation function:
+
    ```typescript
    export const generateProjectPPTX = async (projectId: string) => {
      try {
        // Fetch all data
        const { project, categories } = await fetchPresentationData(projectId);
-       
+
        // Create presentation
        const pptx = new pptxgen();
        pptx.layout = "LAYOUT_4x3";
        pptx.author = "Materials Selection App";
        pptx.title = `${project.name} - Material Selections`;
-       
+
        // Cover slide
        createCoverSlide(pptx, project);
-       
+
        // For each category: section + product slides
-       categories.forEach(category => {
+       categories.forEach((category) => {
          if (category.lineItems.length > 0) {
            createSectionSlide(pptx, category, category.lineItems);
-           
-           category.lineItems.forEach(lineItem => {
+
+           category.lineItems.forEach((lineItem) => {
              createProductSlide(pptx, lineItem);
            });
          }
        });
-       
+
        // Generate filename
        const filename = `${project.clientName} - ${project.name} - Material Selections.pptx`;
-       
+
        // Download
        await pptx.writeFile({ fileName: filename });
-       
+
        return true;
      } catch (error) {
        console.error("PowerPoint generation error:", error);
@@ -814,12 +934,13 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
    ```
 
 2. Add to ProjectDetail.tsx:
+
    ```typescript
    const [generatingPPTX, setGeneratingPPTX] = useState(false);
-   
+
    const handleGeneratePPTX = async () => {
      if (!project) return;
-     
+
      setGeneratingPPTX(true);
      try {
        await generateProjectPPTX(project.id);
@@ -830,7 +951,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
        setGeneratingPPTX(false);
      }
    };
-   
+
    // In JSX:
    <button
      onClick={handleGeneratePPTX}
@@ -844,6 +965,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 3. Test end-to-end with real project data
 
 **Checkpoint:** Full test with actual project:
+
 - Does it generate without errors?
 - Do all slides appear?
 - Do images load?
@@ -854,6 +976,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 #### Phase 7: Testing and Refinement (1 hour)
 
 **Test Cases:**
+
 1. Project with no categories → only cover slide
 2. Project with categories but no line items → cover + sections only
 3. Project with products missing images → handle gracefully
@@ -863,6 +986,7 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 7. Products with no URLs → verify slide still looks good
 
 **Refinements:**
+
 - Adjust font sizes if text overflows
 - Tweak layout positions to match examples more closely
 - Add loading progress indicator for large projects
@@ -872,22 +996,26 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 ### Deployment Strategy
 
 **Step 1: Local Testing**
+
 - Implement and test fully in development (npm run dev)
 - Generate presentations, verify quality
 - Test various edge cases
 
 **Step 2: Build and Test**
+
 - Run `npm run build`
 - Check bundle size increase (should be ~200 KB)
 - Test production build locally with `npm run preview`
 
 **Step 3: Deploy to Production**
+
 - Deploy to S3
 - Invalidate CloudFront cache
 - Test on production with real data
 - Monitor for errors
 
 **Step 4: User Acceptance**
+
 - Generate presentations for a few real projects
 - Compare to manually-created examples
 - Gather feedback
@@ -896,8 +1024,9 @@ Add ability to generate PowerPoint (.pptx) presentations from the Project Detail
 ### Rollback Plan
 
 If issues arise:
+
 1. **Minor issues:** Fix forward
-2. **Major issues:** 
+2. **Major issues:**
    - Git revert the commits
    - Redeploy previous version
    - No backend changes means no Lambda rollback needed
@@ -915,11 +1044,12 @@ If issues arise:
 ✅ Layout matches example presentations  
 ✅ Generation completes in < 30 seconds for typical project  
 ✅ No errors in browser console  
-✅ Existing functionality remains unaffected  
+✅ Existing functionality remains unaffected
 
 ### Maintenance Considerations
 
 **Future Enhancements:**
+
 - Template selection (different designs)
 - Custom branding (logo, colors)
 - Option to include/exclude certain categories
@@ -929,6 +1059,7 @@ If issues arise:
 - Background generation for very large projects
 
 **Potential Issues:**
+
 - External image URLs changing/breaking (solution: cache images, or use proxy)
 - PowerPoint format changes (solution: keep pptxgenjs updated)
 - Very large projects timing out (solution: add progress indicator, optimize)
@@ -939,48 +1070,62 @@ If issues arise:
 ## Key Architectural Principles (Lessons Applied)
 
 ### 1. Isolation
+
 Keep new features isolated from existing functionality:
+
 - Separate buttons/entry points
 - Separate state variables
 - Separate service files
 - No shared conditional logic
 
 ### 2. Backward Compatibility
+
 All changes should be additive:
+
 - Optional fields in backend
 - New endpoints, don't modify existing
 - Graceful degradation (feature works even if partial data)
 
 ### 3. Progressive Enhancement
+
 Build in layers, test each layer:
+
 - Start with basic functionality
 - Add complexity incrementally
 - Each phase has a checkpoint
 - Can stop at any phase if issues arise
 
 ### 4. Error Boundaries
+
 Prevent failures from cascading:
+
 - Try-catch blocks around async operations
 - Finally blocks to reset UI state
 - User-friendly error messages
 - Console logging for debugging
 
 ### 5. User Feedback
+
 Always show loading states:
+
 - Button text changes during operations
 - Disabled states prevent double-clicks
 - Clear success/failure messages
 - Progress indicators for long operations
 
 ### 6. Deployment Independence
+
 Features should be independently deployable:
+
 - Frontend-only changes don't require backend deployment
 - Backend changes are backward compatible
 - Can roll back frontend without touching backend
 - Atomic git commits for atomic rollbacks
 
 ### 7. Testing Discipline
+
 Test at every checkpoint:
+
 - Unit test components in isolation
 - Integration test full workflows
 - Test edge cases explicitly
@@ -1028,12 +1173,14 @@ Before starting implementation:
 ## Summary
 
 **Current State:**
+
 - Application is stable and functional
 - All CRUD operations working
 - Salesforce integration deployed and tested
 - Git repository up to date
 
 **Salesforce Lessons:**
+
 - Isolation prevented existing features from breaking
 - Separate state management avoided complex bugs
 - Backward-compatible backend changes were safe
@@ -1041,6 +1188,7 @@ Before starting implementation:
 - Code duplication was acceptable trade-off vs. consolidation risk
 
 **PowerPoint Plan:**
+
 - Client-side generation (pptxgenjs) recommended
 - Low risk, no backend changes required
 - 7-phase implementation plan
@@ -1048,8 +1196,8 @@ Before starting implementation:
 - Follows same architectural principles as Salesforce
 
 **Next Steps:**
+
 - Answer questions above
 - Get user approval on architectural approach
 - Begin Phase 1 implementation
 - Test thoroughly at each checkpoint
-

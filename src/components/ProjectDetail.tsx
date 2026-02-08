@@ -10,6 +10,7 @@ import {
     projectService,
     vendorService,
 } from "../services";
+import { generateProjectPPTX } from "../services/pptxService";
 import type {
     Category,
     CreateCategoryRequest,
@@ -59,6 +60,7 @@ const ProjectDetail = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [savingProject, setSavingProject] = useState(false);
   const [viewMode, setViewMode] = useState<"category" | "vendor">("category");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(),
@@ -212,14 +214,18 @@ const ProjectDetail = () => {
 
   const handleSaveProject = async () => {
     if (!editingProject) return;
+    setSavingProject(true);
     try {
       const updated = await projectService.update(editingProject.id, {
         name: editingProject.name,
         description: editingProject.description,
+        projectNumber: editingProject.projectNumber,
         customerName: editingProject.customerName,
         address: editingProject.address,
         email: editingProject.email,
         phone: editingProject.phone,
+        mobilePhone: editingProject.mobilePhone,
+        preferredContactMethod: editingProject.preferredContactMethod,
         estimatedStartDate: editingProject.estimatedStartDate,
         type: editingProject.type,
         status: editingProject.status,
@@ -230,6 +236,8 @@ const ProjectDetail = () => {
     } catch (err) {
       alert("Failed to update project");
       console.error("Error updating project:", err);
+    } finally {
+      setSavingProject(false);
     }
   };
 
@@ -1410,15 +1418,23 @@ const ProjectDetail = () => {
     <div className="space-y-4">
       {/* Compact Project Header */}
       <div className="bg-white shadow rounded-lg p-4">
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex items-start justify-between gap-6">
           <div className="flex-shrink-0">
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-bold text-gray-900">
                 {project.name}
               </h1>
+              {project.estimatedStartDate && (
+                <span className="text-xs text-gray-500">
+                  Est. Start:{" "}
+                  {new Date(project.estimatedStartDate).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1 mt-1">
               {project.status && (
                 <span
-                  className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                  className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full self-start ${
                     project.status === "completed"
                       ? "bg-green-100 text-green-800"
                       : project.status === "in-progress"
@@ -1432,14 +1448,8 @@ const ProjectDetail = () => {
                 </span>
               )}
               {project.type && (
-                <span className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-0.5 rounded">
+                <span className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-0.5 rounded self-start">
                   {project.type}
-                </span>
-              )}
-              {project.estimatedStartDate && (
-                <span className="text-xs text-gray-500 ml-2">
-                  Est. Start:{" "}
-                  {new Date(project.estimatedStartDate).toLocaleDateString()}
                 </span>
               )}
             </div>
@@ -1469,61 +1479,59 @@ const ProjectDetail = () => {
                   <span className="font-medium">Email:</span> {project.email}
                 </div>
               )}
-              {project.sharepointFolderUrl && (
-                <div className="col-span-2">
-                  <a
-                    href={project.sharepointFolderUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    📁 Open Project Folder in SharePoint →
-                  </a>
-                </div>
-              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => {
-                setShowProjectModal(true);
-                setEditingProject(project);
-              }}
-              className="text-indigo-600 hover:text-indigo-900 text-xs"
-            >
-              ✏️ Edit
-            </button>
-            {project.sharepointFolderId && project.sharepointDriveId && (
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowDocumentsModal(true)}
-                className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                onClick={() => generateProjectPPTX(project.id)}
+                className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
               >
-                📄 Documents
+                📊 Export PowerPoint
               </button>
-            )}
-            <button
-              onClick={() => setShowCategoryModal(true)}
-              className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
-            >
-              ➕ Section
-            </button>
-            <button
-              onClick={() => {
-                setShowInsertProductModal(true);
-                setFilterVendorId("");
-                setFilterManufacturerId("");
-                setFilterCategory("");
-                setFilterTier({ good: false, better: false, best: false });
-                setFilterCollection("");
-                setSearchTerm("");
-                setSelectedCategoryForInsert(categories[0]?.id || "");
-                setInsertQuantity(1);
-                setInsertUnitCost(0);
-              }}
-              className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
-            >
-              📦 Insert Product
-            </button>
+              {project.sharepointFolderId && project.sharepointDriveId && (
+                <button
+                  onClick={() => setShowDocumentsModal(true)}
+                  className="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                >
+                  📄 Documents
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowProjectModal(true);
+                  setEditingProject(project);
+                }}
+                className="text-indigo-600 hover:text-indigo-900 text-xs"
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={() => setShowCategoryModal(true)}
+                className="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
+              >
+                ➕ Section
+              </button>
+              <button
+                onClick={() => {
+                  setShowInsertProductModal(true);
+                  setFilterVendorId("");
+                  setFilterManufacturerId("");
+                  setFilterCategory("");
+                  setFilterTier({ good: false, better: false, best: false });
+                  setFilterCollection("");
+                  setSearchTerm("");
+                  setSelectedCategoryForInsert(categories[0]?.id || "");
+                  setInsertQuantity(1);
+                  setInsertUnitCost(0);
+                }}
+                className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+              >
+                📦 Insert Product
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -3778,6 +3786,22 @@ const ProjectDetail = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Project Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editingProject.projectNumber || ""}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        projectNumber: e.target.value,
+                      })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Customer Name
                   </label>
                   <input
@@ -3835,6 +3859,38 @@ const ProjectDetail = () => {
                       setEditingProject({
                         ...editingProject,
                         phone: e.target.value,
+                      })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Mobile Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={editingProject.mobilePhone || ""}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        mobilePhone: e.target.value,
+                      })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Preferred Contact Method
+                  </label>
+                  <input
+                    type="text"
+                    value={editingProject.preferredContactMethod || ""}
+                    onChange={(e) =>
+                      setEditingProject({
+                        ...editingProject,
+                        preferredContactMethod: e.target.value,
                       })
                     }
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
@@ -3916,9 +3972,10 @@ const ProjectDetail = () => {
               </button>
               <button
                 onClick={handleSaveProject}
-                className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                disabled={savingProject}
+                className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save Changes
+                {savingProject ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
