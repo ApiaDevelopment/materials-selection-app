@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { projectService } from "../services";
-import type { CreateProjectRequest, Project } from "../types";
+import { projectService, salesforceService } from "../services";
+import type {
+    CreateProjectRequest,
+    Project,
+    SalesforceOpportunity,
+} from "../types";
 
 const ProjectList = () => {
   const navigate = useNavigate();
@@ -11,6 +15,12 @@ const ProjectList = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSalesforceModal, setShowSalesforceModal] = useState(false);
+  const [opportunities, setOpportunities] = useState<SalesforceOpportunity[]>(
+    [],
+  );
+  const [loadingOpportunities, setLoadingOpportunities] = useState(false);
+  const [showSalesforceForm, setShowSalesforceForm] = useState(false);
   const [sortField, setSortField] = useState<keyof Project>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [formData, setFormData] = useState<CreateProjectRequest>({
@@ -84,6 +94,91 @@ const ProjectList = () => {
       });
     }
     setShowModal(true);
+  };
+
+  const handleOpenSalesforceModal = async () => {
+    setShowSalesforceModal(true);
+    setLoadingOpportunities(true);
+    try {
+      const opps = await salesforceService.getOpportunities();
+      setOpportunities(opps);
+    } catch (err) {
+      console.error("Error loading opportunities:", err);
+      alert("Failed to load Salesforce opportunities. Please try again.");
+    } finally {
+      setLoadingOpportunities(false);
+    }
+  };
+
+  const handleCloseSalesforceModal = () => {
+    setShowSalesforceModal(false);
+    setShowSalesforceForm(false);
+    setOpportunities([]);
+    setFormData({
+      name: "",
+      description: "",
+      customerName: "",
+      address: "",
+      email: "",
+      phone: "",
+      estimatedStartDate: "",
+      type: "other",
+      status: "planning",
+    });
+  };
+
+  const handleSelectOpportunity = async (opportunityId: string) => {
+    setLoadingOpportunities(true);
+    try {
+      const details =
+        await salesforceService.getOpportunityDetails(opportunityId);
+
+      // Pre-populate form with Salesforce data
+      const address = [
+        details.account.BillingStreet,
+        details.account.BillingCity,
+        details.account.BillingState,
+        details.account.BillingPostalCode,
+        details.account.BillingCountry,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      setFormData({
+        name: details.opportunity.Name,
+        description: details.opportunity.Name,
+        customerName: details.contact.Name,
+        email: details.contact.Email || "",
+        phone: details.contact.Phone || "",
+        mobilePhone: details.contact.MobilePhone || "",
+        preferredContactMethod:
+          details.contact.Preferred_Method_of_Contact__c || "",
+        address: address,
+        estimatedStartDate: "",
+        type: "other",
+        status: "planning",
+        opportunityId: details.opportunity.Id,
+      });
+
+      setShowSalesforceForm(true);
+    } catch (err) {
+      console.error("Error loading opportunity details:", err);
+      alert("Failed to load opportunity details. Please try again.");
+    } finally {
+      setLoadingOpportunities(false);
+    }
+  };
+
+  const handleSalesforceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await projectService.create(formData);
+      await loadProjects();
+      handleCloseSalesforceModal();
+    } catch (err) {
+      alert("Failed to create project");
+      console.error("Error creating project:", err);
+    }
   };
 
   const handleCloseModal = () => {
@@ -197,12 +292,18 @@ const ProjectList = () => {
             Manage your construction and renovation projects
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
+        <div className="mt-4 sm:mt-0 flex gap-2">
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
           >
             + Create Project
+          </button>
+          <button
+            onClick={handleOpenSalesforceModal}
+            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700"
+          >
+            + Create from Salesforce
           </button>
         </div>
       </div>
@@ -521,6 +622,301 @@ const ProjectList = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Salesforce Opportunities Modal */}
+      {showSalesforceModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-4 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {showSalesforceForm
+                  ? "Create New Project from Salesforce"
+                  : "Select Salesforce Opportunity"}
+              </h3>
+              <button
+                onClick={handleCloseSalesforceModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {showSalesforceForm ? (
+              <form onSubmit={handleSalesforceSubmit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Project Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      rows={2}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.customerName}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          customerName: e.target.value,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Address
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Mobile Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.mobilePhone || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          mobilePhone: e.target.value,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Preferred Contact Method
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.preferredContactMethod || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          preferredContactMethod: e.target.value,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Estimated Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.estimatedStartDate}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          estimatedStartDate: e.target.value,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          type: e.target.value as any,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="bath">Bath</option>
+                      <option value="kitchen">Kitchen</option>
+                      <option value="shower">Shower</option>
+                      <option value="roof">Roof</option>
+                      <option value="addition">Addition</option>
+                      <option value="renovation">Renovation</option>
+                      <option value="flooring">Flooring</option>
+                      <option value="deck">Deck</option>
+                      <option value="basement">Basement</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          status: e.target.value as any,
+                        })
+                      }
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="planning">Planning</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="on-hold">On Hold</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowSalesforceForm(false)}
+                    className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </form>
+            ) : loadingOpportunities ? (
+              <div className="text-center py-8 text-gray-500 text-xs">
+                Loading opportunities...
+              </div>
+            ) : opportunities.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-xs">
+                No Salesforce opportunities found where Selection Coordinator is
+                needed.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-100 border-b border-gray-200">
+                    <tr>
+                      <th className="px-2 py-1 text-left font-medium text-gray-600">
+                        Opportunity Name
+                      </th>
+                      <th className="px-2 py-1 text-left font-medium text-gray-600">
+                        Stage
+                      </th>
+                      <th className="px-2 py-1 text-left font-medium text-gray-600">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {opportunities.map((opp) => (
+                      <tr
+                        key={opp.Id}
+                        className="border-b border-gray-200 hover:bg-gray-50"
+                      >
+                        <td className="px-2 py-1">{opp.Name}</td>
+                        <td className="px-2 py-1 text-gray-600">
+                          {opp.StageName}
+                        </td>
+                        <td className="px-2 py-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectOpportunity(opp.Id)}
+                            className="text-indigo-600 hover:text-indigo-800 font-medium"
+                          >
+                            Select
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {!showSalesforceForm && (
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={handleCloseSalesforceModal}
+                  className="px-3 py-1 text-xs text-gray-700 hover:text-gray-900"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

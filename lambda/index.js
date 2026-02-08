@@ -360,9 +360,12 @@ async function createProject(data) {
     address: data.address || "",
     email: data.email || "",
     phone: data.phone || "",
+    mobilePhone: data.mobilePhone || "",
+    preferredContactMethod: data.preferredContactMethod || "",
     estimatedStartDate: data.estimatedStartDate || "",
     type: data.type || "",
     status: data.status || "planning",
+    opportunityId: data.opportunityId || "",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
