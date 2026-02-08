@@ -1,6 +1,6 @@
 # Materials Selection App - Development Status
 
-**Last Updated:** February 7, 2026  
+**Last Updated:** February 8, 2026  
 **Environment:** Production (mpmaterials.apiaconsulting.com)
 
 ## Current Status Summary
@@ -15,10 +15,11 @@
 - All endpoints have proper CORS configuration
 - Frontend deployed to S3/CloudFront
 - Backend Lambda (MaterialsSelection-API) operational
+- **Salesforce integration** - Create projects from Salesforce opportunities (NEW as of Feb 8, 2026)
 
 ⚠️ **Known Issues:**
 
-- Salesforce opportunity modal rendering problem (shelved for later investigation)
+- None currently
 
 ---
 
@@ -209,46 +210,57 @@ arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-
 
 ---
 
+## Recent Features Added (February 8, 2026)
+
+### Salesforce Integration - RESOLVED ✅
+
+**Previous Status:** Modal rendering broken, non-functional  
+**Current Status:** Fully functional with new implementation
+
+**What We Built:**
+
+Completely new Salesforce integration that allows users to create projects from Salesforce opportunities. Implementation uses separate modal and state management to avoid interfering with existing project creation workflow.
+
+**Features:**
+- Two-step workflow: Select opportunity → Pre-populated project form
+- Fetches 43+ active Salesforce opportunities
+- Pre-fills project data from Salesforce (client name, address, contact info, opportunity ID)
+- User can edit pre-filled data before creating project
+- Loading states with visual feedback
+- Proper error handling
+- Creates project with opportunityId reference for future lookups
+
+**Architecture:**
+- Separate Lambda function: MaterialsSelection-Salesforce-API
+- Separate modal state variables (no shared state with regular project creation)
+- Separate submit handlers
+- Backend changes: Added 3 optional fields to projects (mobilePhone, preferredContactMethod, opportunityId)
+
+**Files Modified:**
+- `lambda/index.js` - Added 3 optional fields to createProject function
+- `src/components/ProjectList.tsx` - Added Salesforce modal and workflow
+- Both regular and Salesforce modals now have identical field sets for consistency
+
+**Git Commits:**
+- `62ae9e2` - "Add Salesforce opportunity integration"  
+- `31833a6` - "Add Mobile Phone and Preferred Contact Method fields to regular project modal"
+
+**User Verification:**
+- ✅ "That is working as expected" (Salesforce workflow)
+- ✅ "OK. that works" (Loading spinner)
+
+For detailed architecture analysis and lessons learned, see: [ARCHITECTURE_LESSONS_AND_POWERPOINT_PLAN.md](./ARCHITECTURE_LESSONS_AND_POWERPOINT_PLAN.md)
+
+---
+
 ## Known Issues & Technical Debt
 
-### 1. Salesforce Integration Modal (Unresolved)
+### 1. ~~Salesforce Integration Modal~~ - RESOLVED Feb 8, 2026
 
-**Location:** `/projects/new` page, Salesforce checkbox  
-**Status:** Non-functional, temporarily disabled
+~~**Location:** `/projects/new` page, Salesforce checkbox~~  
+~~**Status:** Non-functional, temporarily disabled~~
 
-**Symptoms:**
-
-- User clicks Salesforce checkbox
-- Modal opens with gray overlay and table headers visible
-- Modal content (opportunity list, debug boxes) not rendering despite:
-  - Backend API returning 42 opportunities successfully
-  - Frontend receiving and logging 42 opportunities
-  - React state updating correctly (`showOpportunityModal: true`, `opportunities.length: 42`)
-  - No JavaScript errors in console
-  - DOM inspector shows elements exist in HTML
-
-**Debugging Attempted:**
-
-1. Added `setTimeout(0)` to fix React state timing - no effect
-2. Multiple hard refreshes and cache clears - no effect
-3. Removed wrapper divs (4 layers) - no effect
-4. Removed `overflow-hidden` from modal container - no effect
-5. Changed debug box from Tailwind classes to inline styles (red background, 24px font) - still not visible
-6. Verified deployment chain multiple times (S3, CloudFront, browser all have correct bundle)
-
-**Current Theory:**
-Unknown CSS/rendering issue preventing content from displaying inside modal, despite structure rendering correctly. Elements exist in DOM but are not painted/visible.
-
-**Workaround:**
-Reverted ProjectList.tsx to use simple modal for project creation (no Salesforce integration). User can still navigate to `/projects/new` directly if needed.
-
-**Next Steps (Future):**
-
-- Try completely removing ALL Tailwind classes from modal content
-- Test with basic HTML elements only (no styling)
-- Check for z-index stacking context issues
-- Verify Tailwind purge isn't removing required classes
-- Consider using browser DevTools to force display style on hidden elements
+**RESOLUTION:** Built completely new implementation. Old problematic code removed. New implementation working in production.
 
 ### 2. Lambda Permission Configuration
 
@@ -338,26 +350,28 @@ Created entirely new /product-vendors and /product-vendors/{id} resources with f
 ✅ Manufacturers: Create, Read, Update, Delete  
 ✅ Vendors: Create, Read, Update, Delete  
 ✅ Product-Vendor Relationships: Add, Update, Delete  
-❌ Salesforce Integration: Modal rendering broken
+✅ Salesforce Integration: Create projects from opportunities (WORKING as of Feb 8, 2026)
 
 ---
 
 ## Next Session Priorities
 
-1. **Salesforce Modal Investigation**
-   - Try minimal reproduction (single div, no Tailwind, inline styles)
-   - Check if issue is specific to modal or affects other similar popups
-   - Test in different browser to rule out browser-specific issues
+1. **PowerPoint Export Feature** (In Planning)
+   - Add ability to generate PowerPoint presentations from project details
+   - See detailed plan in: [ARCHITECTURE_LESSONS_AND_POWERPOINT_PLAN.md](./ARCHITECTURE_LESSONS_AND_POWERPOINT_PLAN.md)
+   - Recommended approach: Client-side generation using pptxgenjs
+   - Estimated effort: 4-6 hours implementation + testing
 
 2. **Code Cleanup**
-   - Remove debug code from ProjectForm.tsx (red test box, console.logs)
    - Remove unused PowerShell scripts or move to `/scripts` folder
    - Clean up Lambda permissions (remove wrong account statements)
+   - Consider consolidating similar code patterns across components
 
-3. **Testing**
+3. **Testing & Documentation**
    - Test all CRUD operations end-to-end
    - Test product-vendor relationships thoroughly
-   - Verify manufacturers list displays correctly
+   - Update user documentation with new Salesforce workflow
+   - Add screenshots/video walkthrough of key features
 
 ---
 
