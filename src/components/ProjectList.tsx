@@ -21,6 +21,8 @@ const ProjectList = () => {
   );
   const [loadingOpportunities, setLoadingOpportunities] = useState(false);
   const [showSalesforceForm, setShowSalesforceForm] = useState(false);
+  const [savingSalesforceProject, setSavingSalesforceProject] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
   const [sortField, setSortField] = useState<keyof Project>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [formData, setFormData] = useState<CreateProjectRequest>({
@@ -171,6 +173,7 @@ const ProjectList = () => {
 
   const handleSalesforceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingSalesforceProject(true);
     try {
       await projectService.create(formData);
       await loadProjects();
@@ -178,6 +181,8 @@ const ProjectList = () => {
     } catch (err) {
       alert("Failed to create project");
       console.error("Error creating project:", err);
+    } finally {
+      setSavingSalesforceProject(false);
     }
   };
 
@@ -199,6 +204,7 @@ const ProjectList = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingProject(true);
     try {
       if (editingProject) {
         const updated = await projectService.update(
@@ -216,6 +222,8 @@ const ProjectList = () => {
     } catch (err) {
       alert(`Failed to ${editingProject ? "update" : "create"} project`);
       console.error("Error saving project:", err);
+    } finally {
+      setSavingProject(false);
     }
   };
 
@@ -545,6 +553,35 @@ const ProjectList = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Mobile Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.mobilePhone || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, mobilePhone: e.target.value })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Preferred Contact Method
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.preferredContactMethod || ""}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        preferredContactMethod: e.target.value,
+                      })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Estimated Start Date
                   </label>
                   <input
@@ -616,9 +653,16 @@ const ProjectList = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  disabled={savingProject}
+                  className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingProject ? "Update Project" : "Create Project"}
+                  {savingProject
+                    ? editingProject
+                      ? "Updating..."
+                      : "Creating..."
+                    : editingProject
+                      ? "Update Project"
+                      : "Create Project"}
                 </button>
               </div>
             </form>
@@ -849,9 +893,10 @@ const ProjectList = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                    disabled={savingSalesforceProject}
+                    className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Create Project
+                    {savingSalesforceProject ? "Creating..." : "Create Project"}
                   </button>
                 </div>
               </form>
