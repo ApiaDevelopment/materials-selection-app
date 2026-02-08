@@ -356,6 +356,7 @@ async function createProject(data) {
     id: randomUUID(),
     name: data.name,
     description: data.description,
+    projectNumber: data.projectNumber || "",
     customerName: data.customerName || "",
     address: data.address || "",
     email: data.email || "",

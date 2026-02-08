@@ -73,6 +73,7 @@ const ProjectList = () => {
       setFormData({
         name: project.name,
         description: project.description,
+        projectNumber: project.projectNumber || "",
         customerName: project.customerName || "",
         address: project.address || "",
         email: project.email || "",
@@ -86,6 +87,7 @@ const ProjectList = () => {
       setFormData({
         name: "",
         description: "",
+        projectNumber: "",
         customerName: "",
         address: "",
         email: "",
@@ -119,6 +121,7 @@ const ProjectList = () => {
     setFormData({
       name: "",
       description: "",
+      projectNumber: "",
       customerName: "",
       address: "",
       email: "",
@@ -149,6 +152,7 @@ const ProjectList = () => {
       setFormData({
         name: details.opportunity.Name,
         description: details.opportunity.Name,
+        projectNumber: "",
         customerName: details.contact.Name,
         email: details.contact.Email || "",
         phone: details.contact.Phone || "",
@@ -192,6 +196,7 @@ const ProjectList = () => {
     setFormData({
       name: "",
       description: "",
+      projectNumber: "",
       customerName: "",
       address: "",
       email: "",
@@ -501,6 +506,19 @@ const ProjectList = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Project Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.projectNumber || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, projectNumber: e.target.value })
+                    }
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
                     Customer Name
                   </label>
                   <input
@@ -730,6 +748,22 @@ const ProjectList = () => {
                         })
                       }
                       rows={2}
+                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Project Number
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.projectNumber || ""}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          projectNumber: e.target.value,
+                        })
+                      }
                       className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>

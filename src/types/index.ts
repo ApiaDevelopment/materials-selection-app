@@ -2,6 +2,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
+  projectNumber?: string;
   customerName?: string;
   address?: string;
   email?: string;
@@ -112,6 +113,7 @@ export interface LineItem {
 export interface CreateProjectRequest {
   name: string;
   description: string;
+  projectNumber?: string;
   customerName?: string;
   address?: string;
   email?: string;
@@ -137,6 +139,7 @@ export interface CreateProjectRequest {
 export interface UpdateProjectRequest {
   name?: string;
   description?: string;
+  projectNumber?: string;
   customerName?: string;
   mobilePhone?: string;
   preferredContactMethod?: string;
