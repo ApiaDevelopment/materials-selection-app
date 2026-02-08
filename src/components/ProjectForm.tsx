@@ -95,17 +95,25 @@ const ProjectForm = () => {
     setLoadingOpportunities(true);
     setError(null);
     try {
+      console.log("Loading Salesforce opportunities...");
       const opps = await salesforceService.getOpportunities();
-      setOpportunities(opps);
-      if (opps.length > 0) {
-        setShowOpportunityModal(true);
+      console.log("Received opportunities:", opps);
+      console.log("Opportunities count:", opps?.length || 0);
+
+      if (opps && opps.length > 0) {
+        console.log("Setting opportunities and opening modal");
+        setOpportunities(opps);
+        // Use setTimeout to ensure state updates before modal renders
+        setTimeout(() => setShowOpportunityModal(true), 0);
       } else {
+        console.log("No opportunities found");
         setError(
           "No Salesforce opportunities found where Selection Coordinator is needed.",
         );
       }
     } catch (err) {
-      setError("Failed to load Salesforce opportunities");
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to load Salesforce opportunities: ${errorMessage}`);
       console.error("Error loading opportunities:", err);
       setUseSalesforce(false);
     } finally {
@@ -271,59 +279,74 @@ const ProjectForm = () => {
               onClick={() => setShowOpportunityModal(false)}
             />
 
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                      Select Salesforce Opportunity
-                    </h3>
+            <div className="inline-block bg-white rounded-lg text-left shadow-xl sm:my-8 sm:max-w-4xl w-full p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                Select Salesforce Opportunity
+              </h3>
 
-                    <div className="mt-4 max-h-96 overflow-y-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 sticky top-0">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Name
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Stage
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Action
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {opportunities.map((opp) => (
-                            <tr key={opp.Id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {opp.Name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {opp.StageName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleSelectOpportunity(opp.Id)
-                                  }
-                                  disabled={loading}
-                                  className="text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50"
-                                >
-                                  Select
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+              <div
+                style={{
+                  backgroundColor: "red",
+                  color: "white",
+                  padding: "20px",
+                  fontSize: "24px",
+                  marginBottom: "20px",
+                }}
+              >
+                TEST BOX - Count: {opportunities.length}
               </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+
+              <div className="max-h-96 overflow-y-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Stage
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {opportunities.length > 0 ? (
+                      opportunities.map((opp, index) => (
+                        <tr key={opp.Id || index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {opp.Name || "No Name"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {opp.StageName || "No Stage"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button
+                              type="button"
+                              onClick={() => handleSelectOpportunity(opp.Id)}
+                              disabled={loading}
+                              className="text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50"
+                            >
+                              Select
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="text-center py-4 text-sm text-gray-500"
+                        >
+                          No opportunities in array
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 mt-4 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
                   onClick={() => {

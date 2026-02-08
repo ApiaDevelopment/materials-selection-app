@@ -199,7 +199,7 @@ const ProjectList = () => {
         </div>
         <div className="mt-4 sm:mt-0">
           <button
-            onClick={() => handleOpenModal()}
+            onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700"
           >
             + Create Project

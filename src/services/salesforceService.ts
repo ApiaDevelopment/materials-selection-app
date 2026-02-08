@@ -12,10 +12,15 @@ export const salesforceService = {
    */
   getOpportunities: async (): Promise<SalesforceOpportunity[]> => {
     try {
+      console.log(
+        "Fetching from:",
+        `${SF_API_BASE_URL}/salesforce/opportunities`,
+      );
       const response = await fetch(
         `${SF_API_BASE_URL}/salesforce/opportunities`,
       );
 
+      console.log("Response status:", response.status);
       if (!response.ok) {
         throw new Error(
           `Failed to fetch opportunities: ${response.statusText}`,
@@ -23,7 +28,16 @@ export const salesforceService = {
       }
 
       const data = await response.json();
-      return data.opportunities || [];
+      console.log("API response data:", data);
+      console.log("Opportunities array:", data.opportunities);
+
+      const opportunities = data.opportunities || [];
+      if (!Array.isArray(opportunities)) {
+        console.error("Opportunities is not an array:", opportunities);
+        return [];
+      }
+
+      return opportunities;
     } catch (error) {
       console.error("Error fetching Salesforce opportunities:", error);
       throw error;
