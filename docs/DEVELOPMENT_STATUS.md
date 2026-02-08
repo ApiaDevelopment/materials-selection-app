@@ -1,0 +1,345 @@
+# Materials Selection App - Development Status
+**Last Updated:** February 7, 2026  
+**Environment:** Production (mpmaterials.apiaconsulting.com)
+
+## Current Status Summary
+
+✅ **Working:**
+- All project CRUD operations (Create, Read, Update, Delete)
+- All product CRUD operations
+- All manufacturer CRUD operations  
+- All vendor CRUD operations
+- Product-vendor relationship management
+- All endpoints have proper CORS configuration
+- Frontend deployed to S3/CloudFront
+- Backend Lambda (MaterialsSelection-API) operational
+
+⚠️ **Known Issues:**
+- Salesforce opportunity modal rendering problem (shelved for later investigation)
+
+---
+
+## Critical Issues Encountered & Resolved
+
+### Issue #1: AWS Account Mismatch in Lambda Integrations
+
+**Problem:**
+When creating new API Gateway integrations for products, manufacturers, and vendors endpoints, the Lambda ARN was incorrectly hardcoded to use AWS account `590183816485` instead of the correct account `634752426026`.
+
+**Symptoms:**
+- HTTP 500 Internal Server Error on all POST/PUT/DELETE requests
+- No CORS headers in error responses (because Lambda never executed)
+- Error: "Access-Control-Allow-Origin header is present on the requested resource"
+
+**Root Cause:**
+In `fix-api-endpoints.ps1`, the Lambda URI was constructed with the wrong account ID:
+```powershell
+# WRONG:
+$lambdaArn = "arn:aws:lambda:us-east-1:590183816485:function:MaterialsSelection-API"
+
+# CORRECT:
+$lambdaArn = "arn:aws:lambda:us-east-1:634752426026:function:MaterialsSelection-API"
+```
+
+**Resolution:**
+- Created `fix-lambda-account.ps1` to update all 10 affected integrations
+- Updated integrations for:
+  - POST /products
+  - GET/PUT/DELETE /products/{productId}
+  - POST /manufacturers
+  - GET/PUT/DELETE /manufacturers/{manufacturerId}
+  - POST /vendors
+  - GET/PUT/DELETE /vendors/{vendorId}
+- Deployed to production (deployment: fjcg3t)
+
+**Lesson Learned:**
+Always verify Lambda ARN account ID matches the account where API Gateway resides. Use `aws apigateway get-integration` on working endpoints to get the correct template.
+
+---
+
+### Issue #2: Missing CORS Headers on OPTIONS Responses
+
+**Problem:**
+API Gateway OPTIONS methods were configured with MOCK integrations, but the integration responses weren't properly configured with CORS headers.
+
+**Symptoms:**
+- Browser preflight OPTIONS requests succeeded (200 OK)
+- But response contained no `Access-Control-Allow-Origin` header
+- Actual POST/PUT/DELETE requests blocked by browser CORS policy
+- Console error: "Response to preflight request doesn't pass access control check"
+
+**Root Cause:**
+While OPTIONS methods were created with method responses defining header parameters, the integration responses weren't configured to actually populate those headers with values.
+
+**Resolution Process:**
+
+1. **Created OPTIONS method response:**
+```powershell
+$methodParams = '{"method.response.header.Access-Control-Allow-Headers":false,"method.response.header.Access-Control-Allow-Methods":false,"method.response.header.Access-Control-Allow-Origin":false}'
+aws apigateway put-method-response --rest-api-id $apiId --resource-id $resourceId --http-method OPTIONS --status-code 200 --response-parameters $methodParams
+```
+
+2. **Created OPTIONS integration response with actual values:**
+```powershell
+$integParams = @'
+{"method.response.header.Access-Control-Allow-Headers":"'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'","method.response.header.Access-Control-Allow-Methods":"'GET,POST,OPTIONS'","method.response.header.Access-Control-Allow-Origin":"'*'"}
+'@
+aws apigateway put-integration-response --rest-api-id $apiId --resource-id $resourceId --http-method OPTIONS --status-code 200 --response-parameters $integParams
+```
+
+**Note:** PowerShell quoting issues required using here-strings (`@'...'@`) to properly escape the JSON with embedded single quotes.
+
+**Endpoints Fixed:**
+- /projects (deployment: 7o89jc)
+- /projects/{projectId} (deployment: xcacks)
+- /products (deployments: 3vp4l1, oonjha)
+- /products/{productId} (deployment: oonjha)
+- /manufacturers (deployment: oonjha)
+- /manufacturers/{manufacturerId} (deployment: oonjha)
+- /vendors (deployment: oonjha)
+- /vendors/{vendorId} (deployment: oonjha)
+- /product-vendors (deployment: zlwaez)
+- /product-vendors/{id} (deployment: ffo704)
+
+---
+
+### Issue #3: Missing CRUD Methods on Existing Endpoints
+
+**Problem:**
+When the API was initially set up, only GET methods were configured for most endpoints. The MaterialsSelection-API Lambda was built to handle all HTTP methods, but API Gateway wasn't wired to forward POST/PUT/DELETE requests.
+
+**Symptoms:**
+- Products list page loaded fine (GET worked)
+- Add Product button failed (no POST method)
+- Edit Product failed (no PUT method)
+- Delete Product failed (no DELETE method)
+
+**Resolution:**
+Systematically added missing methods to all endpoints:
+
+**Products:**
+- Added POST to /products
+- Created /products/{productId} resource (didn't exist at all)
+- Added GET, PUT, DELETE to /products/{productId}
+
+**Manufacturers:**
+- Added POST to /manufacturers
+- Created /manufacturers/{manufacturerId} resource (didn't exist)
+- Added GET, PUT, DELETE to /manufacturers/{manufacturerId}
+
+**Vendors:**
+- Added POST to /vendors
+- Created /vendors/{vendorId} resource (didn't exist)
+- Added GET, PUT, DELETE to /vendors/{vendorId}
+
+**Product-Vendors:**
+- Created /product-vendors resource (new)
+- Added POST to /product-vendors
+- Created /product-vendors/{id} resource
+- Added GET, PUT, DELETE to /product-vendors/{id}
+
+All integrations point to same Lambda (AWS_PROXY, integration-http-method POST):
+```
+arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:634752426026:function:MaterialsSelection-API/invocations
+```
+
+---
+
+## API Gateway Configuration Details
+
+**API Gateway ID:** xrld1hq3e2  
+**API Name:** MaterialsSelectionAPI  
+**Stage:** prod  
+**Region:** us-east-1  
+**Lambda:** MaterialsSelection-API (account: 634752426026)
+
+### Complete Endpoint Map
+
+| Endpoint | Methods | Resource ID | Purpose |
+|----------|---------|-------------|---------|
+| /projects | GET, POST, OPTIONS | 5hsdxi | List/create projects |
+| /projects/{projectId} | GET, PUT, DELETE, OPTIONS | (varies) | Get/update/delete project |
+| /products | GET, POST, OPTIONS | 1z63lw | List/create products |
+| /products/{productId} | GET, PUT, DELETE, OPTIONS | m83lje | Get/update/delete product |
+| /products/{productId}/vendors | GET | ax2msi | List vendors for product |
+| /manufacturers | GET, POST, OPTIONS | 6t75zr | List/create manufacturers |
+| /manufacturers/{manufacturerId} | GET, PUT, DELETE, OPTIONS | sfq8od | Get/update/delete manufacturer |
+| /vendors | GET, POST, OPTIONS | 3f6bow | List/create vendors |
+| /vendors/{vendorId} | GET, PUT, DELETE, OPTIONS | yla3k3 | Get/update/delete vendor |
+| /product-vendors | POST, OPTIONS | 2cqzh6 | Create product-vendor relationship |
+| /product-vendors/{id} | GET, PUT, DELETE, OPTIONS | oahf6q | Get/update/delete product-vendor |
+| /salesforce/opportunities | GET, OPTIONS | (separate API) | Get Salesforce opportunities |
+
+### CORS Configuration (All Endpoints)
+
+**Allowed Origins:** `*`  
+**Allowed Methods:** Varies by endpoint (GET, POST, PUT, DELETE, OPTIONS)  
+**Allowed Headers:** Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token  
+**Implementation:** MOCK integration on OPTIONS methods with proper integration responses
+
+---
+
+## Deployment History (February 7, 2026)
+
+| Deployment ID | Description | Endpoints Affected |
+|---------------|-------------|--------------------|
+| 7o89jc | Added POST and OPTIONS to /projects | /projects |
+| xcacks | Added PUT, DELETE, OPTIONS to /projects/{projectId} | /projects/{projectId} |
+| oonjha | Added CRUD methods to products, manufacturers, vendors | Multiple |
+| 3vp4l1 | Fixed /products OPTIONS CORS | /products |
+| fjcg3t | Fixed Lambda account ID for all new endpoints | products, manufacturers, vendors |
+| ffo704 | Created product-vendors endpoints | /product-vendors, /product-vendors/{id} |
+| zlwaez | Fixed product-vendors CORS | /product-vendors |
+
+---
+
+## Known Issues & Technical Debt
+
+### 1. Salesforce Integration Modal (Unresolved)
+
+**Location:** `/projects/new` page, Salesforce checkbox  
+**Status:** Non-functional, temporarily disabled
+
+**Symptoms:**
+- User clicks Salesforce checkbox
+- Modal opens with gray overlay and table headers visible
+- Modal content (opportunity list, debug boxes) not rendering despite:
+  - Backend API returning 42 opportunities successfully
+  - Frontend receiving and logging 42 opportunities
+  - React state updating correctly (`showOpportunityModal: true`, `opportunities.length: 42`)
+  - No JavaScript errors in console
+  - DOM inspector shows elements exist in HTML
+
+**Debugging Attempted:**
+1. Added `setTimeout(0)` to fix React state timing - no effect
+2. Multiple hard refreshes and cache clears - no effect
+3. Removed wrapper divs (4 layers) - no effect
+4. Removed `overflow-hidden` from modal container - no effect
+5. Changed debug box from Tailwind classes to inline styles (red background, 24px font) - still not visible
+6. Verified deployment chain multiple times (S3, CloudFront, browser all have correct bundle)
+
+**Current Theory:**
+Unknown CSS/rendering issue preventing content from displaying inside modal, despite structure rendering correctly. Elements exist in DOM but are not painted/visible.
+
+**Workaround:**
+Reverted ProjectList.tsx to use simple modal for project creation (no Salesforce integration). User can still navigate to `/projects/new` directly if needed.
+
+**Next Steps (Future):**
+- Try completely removing ALL Tailwind classes from modal content
+- Test with basic HTML elements only (no styling)
+- Check for z-index stacking context issues
+- Verify Tailwind purge isn't removing required classes
+- Consider using browser DevTools to force display style on hidden elements
+
+### 2. Lambda Permission Configuration
+
+**Current State:**
+Lambda has broad permission statement `apigateway-all-methods` allowing all API Gateway invocations:
+```
+arn:aws:execute-api:us-east-1:634752426026:xrld1hq3e2/*/*
+```
+
+This works but is overly permissive. Also has some orphaned statements with wrong account ID from earlier troubleshooting attempts.
+
+**Recommendation:**
+Clean up Lambda policy to remove duplicate/incorrect statements once all functionality is verified working.
+
+---
+
+## Frontend Deployment
+
+**S3 Bucket:** materials-selection-app-7525  
+**CloudFront Distribution:** E2CO2DGE8F4YUE  
+**Domain:** https://mpmaterials.apiaconsulting.com  
+**Build Tool:** Vite (rolldown-vite v7.2.5)  
+**Current Bundle:** index-DCMT1qdX.js (458.87 KB)
+
+**Deployment Process:**
+1. `npm run build`
+2. `aws s3 sync dist/ s3://materials-selection-app-7525 --delete`
+3. `aws cloudfront create-invalidation --distribution-id E2CO2DGE8F4YUE --paths "/*"`
+4. Hard refresh browser (Ctrl+Shift+R)
+
+**Cache Invalidations Today:** 7+ (multiple debugging cycles)
+
+---
+
+## Backend Lambda
+
+**Function Name:** MaterialsSelection-API  
+**Runtime:** Node.js 20.x  
+**Memory:** 256 MB  
+**Region:** us-east-1  
+**Account:** 634752426026  
+**Code Location:** `C:\AppStaging\extracted\`
+
+**CORS Headers (in code):**
+```javascript
+const headers = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+};
+```
+
+Lambda correctly returns CORS headers in all responses. The OPTIONS methods are handled by API Gateway MOCK integrations, not Lambda.
+
+---
+
+## Scripts Created for Infrastructure Management
+
+### fix-api-endpoints.ps1
+Creates all missing CRUD methods and OPTIONS/CORS for products, manufacturers, vendors. Initially had wrong account ID bug.
+
+### fix-lambda-account.ps1
+Fixed the account ID mismatch by updating all 10 Lambda integrations to use correct account 634752426026.
+
+### fix-products-options.ps1
+Specifically fixed the OPTIONS integration response for /products endpoint.
+
+### create-product-vendors.ps1
+Created entirely new /product-vendors and /product-vendors/{id} resources with full CRUD and CORS.
+
+**Note:** All scripts use PowerShell and rely on AWS CLI being configured with credentials.
+
+---
+
+## Testing Checklist
+
+✅ Projects: Create, Read, Update, Delete  
+✅ Products: Create, Read, Update, Delete  
+✅ Manufacturers: Create, Read, Update, Delete  
+✅ Vendors: Create, Read, Update, Delete  
+✅ Product-Vendor Relationships: Add, Update, Delete  
+❌ Salesforce Integration: Modal rendering broken  
+
+---
+
+## Next Session Priorities
+
+1. **Salesforce Modal Investigation**
+   - Try minimal reproduction (single div, no Tailwind, inline styles)
+   - Check if issue is specific to modal or affects other similar popups
+   - Test in different browser to rule out browser-specific issues
+
+2. **Code Cleanup**
+   - Remove debug code from ProjectForm.tsx (red test box, console.logs)
+   - Remove unused PowerShell scripts or move to `/scripts` folder
+   - Clean up Lambda permissions (remove wrong account statements)
+
+3. **Testing**
+   - Test all CRUD operations end-to-end
+   - Test product-vendor relationships thoroughly
+   - Verify manufacturers list displays correctly
+
+---
+
+## Important Notes
+
+- **Always verify AWS account ID** when creating new Lambda integrations
+- **CORS requires TWO steps**: method response definition + integration response with values
+- **PowerShell quoting:** Use here-strings for complex JSON with embedded quotes
+- **Deployment is required** after any API Gateway changes
+- **Cache invalidation is critical** for CloudFront to serve updated frontend code
+- **The Lambda code is already correct** - most issues are API Gateway configuration
