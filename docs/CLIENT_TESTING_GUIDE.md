@@ -132,12 +132,20 @@ When you select a product for a project, you can choose which vendor to purchase
 
 Projects are the central organizing structure for materials selection. Each project represents a client job or renovation.
 
-### Creating a New Project
+### Two Ways to Create a Project
+
+There are two methods for creating new projects:
+
+1. **Basic Project Creation** - Manually enter all project information
+2. **Load from Salesforce** - Pre-populate project data from an existing Salesforce opportunity
+
+### Method 1: Basic Project Creation
 
 **How to Access:**
 
 1. Navigate to the **Projects** page from the main navigation menu
 2. Click the **➕ New Project** button
+3. The basic project creation form appears
 
 **Project Information:**
 
@@ -159,6 +167,47 @@ Projects are the central organizing structure for materials selection. Each proj
 
 **After Creation:**
 Once created, you'll be taken to the Project Detail page where you can begin adding sections and selecting products.
+
+### Method 2: Load from Salesforce
+
+**Purpose:** Automatically import project and customer information from an existing Salesforce opportunity, reducing manual data entry.
+
+**How to Access:**
+
+1. Navigate to the **Projects** page from the main navigation menu
+2. Click the **➕ New Project** button
+3. Check the **"Load from Salesforce Opportunity"** checkbox
+4. Click **"Load from Salesforce"** button
+
+**Salesforce Workflow:**
+
+1. **Select Opportunity:**
+   - A list of active Salesforce opportunities appears
+   - Browse through available opportunities
+   - Click **"Select"** on the opportunity you want to use
+
+2. **Review Pre-Populated Data:**
+   - The project form automatically fills with Salesforce data:
+     - Project Name (from Opportunity Name)
+     - Customer Name (from Account)
+     - Address (from Account)
+     - Phone and Email (from Account)
+     - Additional contact information
+   - All fields remain editable - you can modify any pre-filled data
+
+3. **Complete and Create:**
+   - Review and adjust the pre-populated information as needed
+   - Add any additional details (budget, estimated start date, etc.)
+   - Click **"Create Project"** to save
+
+**Benefits:**
+
+- Faster project creation with less typing
+- Ensures consistency between Salesforce and the Materials Selection App
+- Automatically links project to Salesforce opportunity for future reference
+- Reduces data entry errors
+
+**Note:** The Salesforce integration requires that opportunities are properly set up in your Salesforce system with complete account information.
 
 ---
 
