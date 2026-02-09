@@ -115,11 +115,23 @@ export interface LineItemOption {
   lineItemId: string;
   productId: string;
   unitCost: number;
+  isSelected: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateLineItemOptionRequest {
+  productId: string;
+  unitCost: number;
+  isSelected?: boolean;
+}
+
+export interface UpdateLineItemOptionRequest {
+  unitCost?: number;
+  isSelected?: boolean;
+}
+
+export interface SelectLineItemOptionRequest {
   productId: string;
   unitCost: number;
 }
@@ -222,10 +234,10 @@ export interface UpdateLineItemRequest {
   unit?: string;
   unitCost?: number;
   notes?: string;
-  vendorId?: string;
-  manufacturerId?: string;
-  productId?: string;
-  modelNumber?: string;
+  vendorId?: string | null;
+  manufacturerId?: string | null;
+  productId?: string | null;
+  modelNumber?: string | null;
   allowance?: number;
   orderedDate?: string;
   receivedDate?: string;

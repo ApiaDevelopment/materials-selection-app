@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
     categoryService,
+    lineItemOptionService,
     lineItemService,
     manufacturerService,
     orderService,
@@ -16,6 +17,7 @@ import type {
     CreateCategoryRequest,
     CreateLineItemRequest,
     LineItem,
+    LineItemOption,
     Manufacturer,
     Order,
     OrderItem,
@@ -142,6 +144,9 @@ const ProjectDetail = () => {
   const [optionsForLineItem, setOptionsForLineItem] = useState<LineItem | null>(
     null,
   );
+  const [allLineItemOptions, setAllLineItemOptions] = useState<
+    LineItemOption[]
+  >([]);
 
   useEffect(() => {
     if (id) {
@@ -179,6 +184,16 @@ const ProjectDetail = () => {
         allProductVendors.push(...pvs);
       }
       setProductVendors(allProductVendors);
+
+      // Load all line item options
+      const allOptions: LineItemOption[] = [];
+      for (const lineItem of lineItemsData) {
+        const options = await lineItemOptionService.getByLineItemId(
+          lineItem.id,
+        );
+        allOptions.push(...options);
+      }
+      setAllLineItemOptions(allOptions);
       setProject(projectData);
       setCategories(categoriesData);
       setLineItems(lineItemsData);
@@ -358,6 +373,15 @@ const ProjectDetail = () => {
     if (!editingItem) return;
     try {
       const updated = await lineItemService.update(editingItem.id, editingItem);
+
+      // Sync to LineItemOptions if product selected
+      if (editingItem.productId) {
+        await lineItemOptionService.selectOption(editingItem.id, {
+          productId: editingItem.productId,
+          unitCost: editingItem.unitCost,
+        });
+      }
+
       setLineItems(
         lineItems.map((item) => (item.id === updated.id ? updated : item)),
       );
@@ -378,6 +402,15 @@ const ProjectDetail = () => {
     if (!editingItem) return;
     try {
       const updated = await lineItemService.update(editingItem.id, editingItem);
+
+      // Sync to LineItemOptions if product selected
+      if (editingItem.productId) {
+        await lineItemOptionService.selectOption(editingItem.id, {
+          productId: editingItem.productId,
+          unitCost: editingItem.unitCost,
+        });
+      }
+
       setLineItems(
         lineItems.map((item) => (item.id === updated.id ? updated : item)),
       );
@@ -856,6 +889,14 @@ const ProjectDetail = () => {
         selectingForLineItem.id,
         updatedItem,
       );
+
+      // Sync to LineItemOptions
+      await lineItemOptionService.selectOption(selectingForLineItem.id, {
+        productId: product.id,
+        unitCost:
+          insertUnitCost > 0 ? insertUnitCost : primaryVendor?.cost || 0,
+      });
+
       setLineItems(
         lineItems.map((item) => (item.id === updated.id ? updated : item)),
       );
@@ -909,6 +950,14 @@ const ProjectDetail = () => {
       };
 
       const created = await lineItemService.create(newLineItem);
+
+      // Sync to LineItemOptions
+      await lineItemOptionService.selectOption(created.id, {
+        productId: product.id,
+        unitCost:
+          insertUnitCost > 0 ? insertUnitCost : primaryVendor?.cost || 0,
+      });
+
       setLineItems([...lineItems, created]);
       setShowInsertProductModal(false);
       setSelectingForLineItem(null);
@@ -939,12 +988,30 @@ const ProjectDetail = () => {
     setOptionsForLineItem(null);
   };
 
+  // Check if a line item has unselected options
+  const hasUnselectedOptions = (lineItemId: string): boolean => {
+    const options = allLineItemOptions.filter(
+      (opt) => opt.lineItemId === lineItemId,
+    );
+    return options.some((opt) => !opt.isSelected);
+  };
+
   const handleOptionsChanged = async () => {
     // Reload line items to reflect any product selection changes
     if (id) {
       try {
         const updatedLineItems = await lineItemService.getByProjectId(id);
         setLineItems(updatedLineItems);
+
+        // Reload all line item options
+        const allOptions: LineItemOption[] = [];
+        for (const lineItem of updatedLineItems) {
+          const options = await lineItemOptionService.getByLineItemId(
+            lineItem.id,
+          );
+          allOptions.push(...options);
+        }
+        setAllLineItemOptions(allOptions);
       } catch (error) {
         console.error("Error reloading line items:", error);
       }
@@ -2105,7 +2172,9 @@ const ProjectDetail = () => {
                                     className="ml-1 text-purple-600 hover:text-purple-900"
                                     title="Choose options (Good/Better/Best)"
                                   >
-                                    ⚙️
+                                    {hasUnselectedOptions(item.id)
+                                      ? "❓"
+                                      : "⚙️"}
                                   </button>
                                   {(item.status === "pending" ||
                                     item.status === "selected") && (
@@ -2836,7 +2905,9 @@ const ProjectDetail = () => {
                                       className="ml-1 text-purple-600 hover:text-purple-900"
                                       title="Choose options (Good/Better/Best)"
                                     >
-                                      ⚙️
+                                      {hasUnselectedOptions(item.id)
+                                        ? "❓"
+                                        : "⚙️"}
                                     </button>
                                   </td>
                                   <td className="px-2 py-1 text-center relative bg-gray-100">
@@ -3280,7 +3351,9 @@ const ProjectDetail = () => {
                                       className="ml-1 text-purple-600 hover:text-purple-900"
                                       title="Choose options (Good/Better/Best)"
                                     >
-                                      ⚙️
+                                      {hasUnselectedOptions(item.id)
+                                        ? "❓"
+                                        : "⚙️"}
                                     </button>
                                   </td>
                                   <td className="px-2 py-1 text-center relative bg-gray-100">

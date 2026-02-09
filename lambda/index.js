@@ -194,6 +194,17 @@ exports.handler = async (event) => {
       const lineItemId = path.split("/")[2];
       return await createLineItemOption(lineItemId, JSON.parse(event.body));
     }
+    if (
+      path.match(/^\/lineitems\/[^\/]+\/select-option$/) &&
+      method === "PUT"
+    ) {
+      const lineItemId = path.split("/")[2];
+      return await selectLineItemOption(lineItemId, JSON.parse(event.body));
+    }
+    if (path.match(/^\/lineitem-options\/[^\/]+$/) && method === "PUT") {
+      const optionId = path.split("/")[2];
+      return await updateLineItemOption(optionId, JSON.parse(event.body));
+    }
     if (path.match(/^\/lineitem-options\/[^\/]+$/) && method === "DELETE") {
       const optionId = path.split("/")[2];
       return await deleteLineItemOption(optionId);
@@ -776,23 +787,92 @@ async function updateLineItem(id, data) {
     };
   }
 
-  // Merge updates with existing data
-  const lineItem = {
-    ...existing.Item,
-    ...data,
-    id,
-    updatedAt: new Date().toISOString(),
-  };
+  // Build UpdateExpression for SET and REMOVE
+  const setExpressions = [];
+  const removeExpressions = [];
+  const expressionAttributeNames = {};
+  const expressionAttributeValues = {};
 
-  // Recalculate totalCost if quantity or unitCost changed
-  if (lineItem.quantity !== undefined && lineItem.unitCost !== undefined) {
-    lineItem.totalCost = lineItem.quantity * lineItem.unitCost;
+  // Always update timestamp
+  setExpressions.push("#updatedAt = :updatedAt");
+  expressionAttributeNames["#updatedAt"] = "updatedAt";
+  expressionAttributeValues[":updatedAt"] = new Date().toISOString();
+
+  // Fields that should never be updated (immutable, structural, computed, or virtual)
+  const IMMUTABLE_FIELDS = [
+    "id",
+    "categoryId",
+    "projectId",
+    "createdAt",
+    "updatedAt",
+    "totalCost", // Computed from quantity * unitCost
+    "vendorName", // Virtual field from join, not stored
+    "manufacturerName", // Virtual field from join, not stored
+  ];
+
+  // Process each field
+  Object.keys(data).forEach((key) => {
+    // Skip immutable fields
+    if (IMMUTABLE_FIELDS.includes(key)) {
+      return;
+    }
+
+    const attrName = `#${key}`;
+    const attrValue = `:${key}`;
+
+    if (data[key] !== null && data[key] !== undefined) {
+      // SET the value (including empty string and 0)
+      setExpressions.push(`${attrName} = ${attrValue}`);
+      expressionAttributeNames[attrName] = key;
+      expressionAttributeValues[attrValue] = data[key];
+    } else if (data[key] === null) {
+      // REMOVE the attribute when null
+      removeExpressions.push(attrName);
+      expressionAttributeNames[attrName] = key;
+    }
+    // If undefined, skip it (not present in JSON)
+  });
+
+  // Build the update expression
+  let updateExpression = "";
+  if (setExpressions.length > 0) {
+    updateExpression += "SET " + setExpressions.join(", ");
+  }
+  if (removeExpressions.length > 0) {
+    if (updateExpression) updateExpression += " ";
+    updateExpression += "REMOVE " + removeExpressions.join(", ");
   }
 
-  await ddb.send(
-    new PutCommand({ TableName: LINEITEMS_TABLE, Item: lineItem }),
+  // Recalculate totalCost if quantity or unitCost are being updated
+  if (data.quantity !== undefined || data.unitCost !== undefined) {
+    const newQuantity =
+      data.quantity !== undefined ? data.quantity : existing.Item.quantity;
+    const newUnitCost =
+      data.unitCost !== undefined ? data.unitCost : existing.Item.unitCost;
+    if (newQuantity !== undefined && newUnitCost !== undefined) {
+      setExpressions.push("#totalCost = :totalCost");
+      expressionAttributeNames["#totalCost"] = "totalCost";
+      expressionAttributeValues[":totalCost"] = newQuantity * newUnitCost;
+      // Rebuild update expression with totalCost
+      updateExpression = "SET " + setExpressions.join(", ");
+      if (removeExpressions.length > 0) {
+        updateExpression += " REMOVE " + removeExpressions.join(", ");
+      }
+    }
+  }
+
+  const result = await ddb.send(
+    new UpdateCommand({
+      TableName: LINEITEMS_TABLE,
+      Key: { id },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    }),
   );
-  return { statusCode: 200, headers, body: JSON.stringify(lineItem) };
+
+  return { statusCode: 200, headers, body: JSON.stringify(result.Attributes) };
 }
 
 async function deleteLineItem(id) {
@@ -827,6 +907,7 @@ async function createLineItemOption(lineItemId, data) {
     lineItemId: lineItemId,
     productId: data.productId,
     unitCost: data.unitCost,
+    isSelected: data.isSelected || false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -837,6 +918,142 @@ async function createLineItemOption(lineItemId, data) {
     statusCode: 201,
     headers,
     body: JSON.stringify({ success: true, option }),
+  };
+}
+
+async function updateLineItemOption(optionId, data) {
+  // Build update expression dynamically
+  const updateParts = [];
+  const expressionAttributeNames = {};
+  const expressionAttributeValues = {};
+
+  if (data.unitCost !== undefined) {
+    updateParts.push("#unitCost = :unitCost");
+    expressionAttributeNames["#unitCost"] = "unitCost";
+    expressionAttributeValues[":unitCost"] = data.unitCost;
+  }
+  if (data.isSelected !== undefined) {
+    updateParts.push("#isSelected = :isSelected");
+    expressionAttributeNames["#isSelected"] = "isSelected";
+    expressionAttributeValues[":isSelected"] = data.isSelected;
+  }
+
+  // Always update updatedAt
+  updateParts.push("#updatedAt = :updatedAt");
+  expressionAttributeNames["#updatedAt"] = "updatedAt";
+  expressionAttributeValues[":updatedAt"] = new Date().toISOString();
+
+  const result = await ddb.send(
+    new UpdateCommand({
+      TableName: LINEITEMOPTIONS_TABLE,
+      Key: { id: optionId },
+      UpdateExpression: `SET ${updateParts.join(", ")}`,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    }),
+  );
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify(result.Attributes),
+  };
+}
+
+async function selectLineItemOption(lineItemId, data) {
+  // data = { productId, unitCost }
+  const { productId, unitCost } = data;
+
+  // 1. Get all options for this line item
+  const queryResult = await ddb.send(
+    new QueryCommand({
+      TableName: LINEITEMOPTIONS_TABLE,
+      IndexName: "lineItemId-index",
+      KeyConditionExpression: "lineItemId = :lineItemId",
+      ExpressionAttributeValues: {
+        ":lineItemId": lineItemId,
+      },
+    }),
+  );
+
+  const existingOptions = queryResult.Items || [];
+  const matchingOption = existingOptions.find(
+    (opt) => opt.productId === productId,
+  );
+
+  let selectedOption;
+
+  // 2. Create or update the option to be selected
+  if (matchingOption) {
+    // Update existing option to selected
+    const updateResult = await ddb.send(
+      new UpdateCommand({
+        TableName: LINEITEMOPTIONS_TABLE,
+        Key: { id: matchingOption.id },
+        UpdateExpression:
+          "SET #isSelected = :isSelected, #unitCost = :unitCost, #updatedAt = :updatedAt",
+        ExpressionAttributeNames: {
+          "#isSelected": "isSelected",
+          "#unitCost": "unitCost",
+          "#updatedAt": "updatedAt",
+        },
+        ExpressionAttributeValues: {
+          ":isSelected": true,
+          ":unitCost": unitCost,
+          ":updatedAt": new Date().toISOString(),
+        },
+        ReturnValues: "ALL_NEW",
+      }),
+    );
+    selectedOption = updateResult.Attributes;
+  } else {
+    // Create new option as selected
+    selectedOption = {
+      id: randomUUID(),
+      lineItemId: lineItemId,
+      productId: productId,
+      unitCost: unitCost,
+      isSelected: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await ddb.send(
+      new PutCommand({
+        TableName: LINEITEMOPTIONS_TABLE,
+        Item: selectedOption,
+      }),
+    );
+  }
+
+  // 3. Deselect all other options for this line item
+  const deselectPromises = existingOptions
+    .filter((opt) => opt.productId !== productId && opt.isSelected)
+    .map((opt) =>
+      ddb.send(
+        new UpdateCommand({
+          TableName: LINEITEMOPTIONS_TABLE,
+          Key: { id: opt.id },
+          UpdateExpression:
+            "SET #isSelected = :isSelected, #updatedAt = :updatedAt",
+          ExpressionAttributeNames: {
+            "#isSelected": "isSelected",
+            "#updatedAt": "updatedAt",
+          },
+          ExpressionAttributeValues: {
+            ":isSelected": false,
+            ":updatedAt": new Date().toISOString(),
+          },
+        }),
+      ),
+    );
+
+  await Promise.all(deselectPromises);
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ success: true, option: selectedOption }),
   };
 }
 

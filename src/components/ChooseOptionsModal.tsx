@@ -119,25 +119,55 @@ export const ChooseOptionsModal: React.FC<ChooseOptionsModalProps> = ({
       const primaryPV =
         productVendorList.find((pv) => pv.isPrimary) || productVendorList[0];
 
-      // Update line item with selected product
+      // Use the new selectOption endpoint that handles everything
+      await lineItemOptionService.selectOption(lineItem.id, {
+        productId: product.id,
+        unitCost: option.unitCost,
+      });
+
+      // Update line item with selected product (for denormalized cache)
       await lineItemService.update(lineItem.id, {
         productId: product.id,
         modelNumber: product.modelNumber,
         manufacturerId: product.manufacturerId,
         vendorId: primaryPV?.vendorId,
         unitCost: option.unitCost,
+        unit: product.unit || "",
+        material: product.description || "",
       });
 
-      // Remove from options since it's now the selected product
-      await lineItemOptionService.delete(option.id);
-
-      // Refresh and close
+      // Refresh
       await loadOptions();
       onOptionsChanged();
-      onClose();
     } catch (error) {
       console.error("Error selecting option:", error);
       alert("Failed to select option");
+    }
+  };
+
+  // Deselect the current option
+  const handleDeselectOption = async (option: LineItemOption) => {
+    try {
+      // Update option to not selected
+      await lineItemOptionService.update(option.id, { isSelected: false });
+
+      // Clear line item product selection
+      await lineItemService.update(lineItem.id, {
+        productId: null,
+        modelNumber: null,
+        manufacturerId: null,
+        vendorId: null,
+        unitCost: 0,
+        unit: "",
+        material: "",
+      });
+
+      // Refresh
+      await loadOptions();
+      onOptionsChanged();
+    } catch (error) {
+      console.error("Error deselecting option:", error);
+      alert("Failed to deselect option");
     }
   };
 
@@ -279,6 +309,9 @@ export const ChooseOptionsModal: React.FC<ChooseOptionsModalProps> = ({
                       Cost
                     </th>
                     <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                      Unit
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
                       Action
                     </th>
                   </tr>
@@ -303,10 +336,27 @@ export const ChooseOptionsModal: React.FC<ChooseOptionsModalProps> = ({
                       productVendorList[0];
 
                     return (
-                      <tr key={option.id} className="bg-green-50">
+                      <tr
+                        key={option.id}
+                        className={option.isSelected ? "bg-green-50" : ""}
+                      >
                         <td className="px-3 py-2 text-xs text-gray-900">
-                          <div className="font-medium">
-                            {product?.name || "Unknown Product"}
+                          <div className="flex items-center gap-2">
+                            {option.isSelected && (
+                              <span className="text-green-600 font-bold">
+                                ✓
+                              </span>
+                            )}
+                            <div>
+                              <div className="font-medium">
+                                {product?.name || "Unknown Product"}
+                              </div>
+                              {product?.description && (
+                                <div className="text-gray-500 truncate max-w-xs">
+                                  {product.description}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-3 py-2 text-xs text-gray-600">
@@ -363,20 +413,34 @@ export const ChooseOptionsModal: React.FC<ChooseOptionsModalProps> = ({
                             ? primaryPV.cost.toFixed(2)
                             : option.unitCost.toFixed(2)}
                         </td>
+                        <td className="px-3 py-2 text-xs text-gray-600">
+                          {product?.unit || "-"}
+                        </td>
                         <td className="px-3 py-2 text-xs">
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => handleSelectOption(option)}
-                              className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
-                            >
-                              Select
-                            </button>
-                            <button
-                              onClick={() => handleRemoveOption(option.id)}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
-                            >
-                              Remove
-                            </button>
+                            {option.isSelected ? (
+                              <button
+                                onClick={() => handleDeselectOption(option)}
+                                className="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700"
+                              >
+                                Deselect
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleSelectOption(option)}
+                                  className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                                >
+                                  Select
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveOption(option.id)}
+                                  className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
+                                >
+                                  Remove
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -530,6 +594,9 @@ export const ChooseOptionsModal: React.FC<ChooseOptionsModalProps> = ({
                     Cost
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
+                    Unit
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700">
                     Action
                   </th>
                 </tr>
@@ -625,10 +692,13 @@ export const ChooseOptionsModal: React.FC<ChooseOptionsModalProps> = ({
                         <td className="px-3 py-2 text-xs text-gray-600">
                           {primaryPV ? `$${primaryPV.cost.toFixed(2)}` : "-"}
                         </td>
+                        <td className="px-3 py-2 text-xs text-gray-600">
+                          {product.unit || "-"}
+                        </td>
                         <td className="px-3 py-2 text-xs">
                           {alreadySelected ? (
                             <span className="text-green-600 font-medium">
-                              ✓ Selected
+                              ✓ Added
                             </span>
                           ) : (
                             <button

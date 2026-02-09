@@ -1,4 +1,9 @@
-import type { CreateLineItemOptionRequest, LineItemOption } from "../types";
+import type {
+    CreateLineItemOptionRequest,
+    LineItemOption,
+    SelectLineItemOptionRequest,
+    UpdateLineItemOptionRequest,
+} from "../types";
 import apiClient from "./api";
 
 export const lineItemOptionService = {
@@ -19,6 +24,30 @@ export const lineItemOptionService = {
       success: boolean;
       option: LineItemOption;
     }>(`/lineitems/${lineItemId}/options`, data);
+    return response.data.option;
+  },
+
+  // Update an existing option
+  update: async (
+    optionId: string,
+    data: UpdateLineItemOptionRequest,
+  ): Promise<LineItemOption> => {
+    const response = await apiClient.put<LineItemOption>(
+      `/lineitem-options/${optionId}`,
+      data,
+    );
+    return response.data;
+  },
+
+  // Select an option (marks it as selected, deselects others, syncs to LineItem)
+  selectOption: async (
+    lineItemId: string,
+    data: SelectLineItemOptionRequest,
+  ): Promise<LineItemOption> => {
+    const response = await apiClient.put<{
+      success: boolean;
+      option: LineItemOption;
+    }>(`/lineitems/${lineItemId}/select-option`, data);
     return response.data.option;
   },
 
