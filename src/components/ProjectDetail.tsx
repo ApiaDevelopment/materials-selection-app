@@ -26,6 +26,7 @@ import type {
     Vendor,
 } from "../types";
 import { ChatAssistant } from "./ChatAssistant";
+import { ChooseOptionsModal } from "./ChooseOptionsModal";
 import DocumentManager from "./DocumentManager";
 
 const ProjectDetail = () => {
@@ -137,6 +138,10 @@ const ProjectDetail = () => {
   const [insertUnitCost, setInsertUnitCost] = useState<number>(0);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [optionsForLineItem, setOptionsForLineItem] = useState<LineItem | null>(
+    null,
+  );
 
   useEffect(() => {
     if (id) {
@@ -918,6 +923,31 @@ const ProjectDetail = () => {
     } catch (err) {
       alert("Failed to insert product");
       console.error("Error inserting product:", err);
+    }
+  };
+
+  const handleOpenOptionsModal = (lineItemId: string) => {
+    const lineItem = lineItems.find((item) => item.id === lineItemId);
+    if (lineItem) {
+      setOptionsForLineItem(lineItem);
+      setShowOptionsModal(true);
+    }
+  };
+
+  const handleCloseOptionsModal = () => {
+    setShowOptionsModal(false);
+    setOptionsForLineItem(null);
+  };
+
+  const handleOptionsChanged = async () => {
+    // Reload line items to reflect any product selection changes
+    if (id) {
+      try {
+        const updatedLineItems = await lineItemService.getByProjectId(id);
+        setLineItems(updatedLineItems);
+      } catch (error) {
+        console.error("Error reloading line items:", error);
+      }
     }
   };
 
@@ -2068,6 +2098,15 @@ const ProjectDetail = () => {
                                         : "📋"}
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() =>
+                                      handleOpenOptionsModal(item.id)
+                                    }
+                                    className="ml-1 text-purple-600 hover:text-purple-900"
+                                    title="Choose options (Good/Better/Best)"
+                                  >
+                                    ⚙️
+                                  </button>
                                   {(item.status === "pending" ||
                                     item.status === "selected") && (
                                     <button
@@ -2111,6 +2150,15 @@ const ProjectDetail = () => {
                                         className="block w-full text-left px-3 py-2 text-xs text-indigo-600 hover:bg-gray-50"
                                       >
                                         Edit
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          handleOpenOptionsModal(item.id);
+                                          setOpenActionMenu(null);
+                                        }}
+                                        className="block w-full text-left px-3 py-2 text-xs text-purple-600 hover:bg-gray-50"
+                                      >
+                                        Options
                                       </button>
                                       <button
                                         onClick={() => {
@@ -2781,6 +2829,15 @@ const ProjectDetail = () => {
                                     >
                                       ✏️
                                     </button>
+                                    <button
+                                      onClick={() =>
+                                        handleOpenOptionsModal(item.id)
+                                      }
+                                      className="ml-1 text-purple-600 hover:text-purple-900"
+                                      title="Choose options (Good/Better/Best)"
+                                    >
+                                      ⚙️
+                                    </button>
                                   </td>
                                   <td className="px-2 py-1 text-center relative bg-gray-100">
                                     <button
@@ -2805,6 +2862,15 @@ const ProjectDetail = () => {
                                           className="block w-full text-left px-3 py-2 text-xs text-indigo-600 hover:bg-gray-50"
                                         >
                                           Edit
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            handleOpenOptionsModal(item.id);
+                                            setOpenActionMenu(null);
+                                          }}
+                                          className="block w-full text-left px-3 py-2 text-xs text-purple-600 hover:bg-gray-50"
+                                        >
+                                          Options
                                         </button>
                                         <button
                                           onClick={() => {
@@ -3207,6 +3273,15 @@ const ProjectDetail = () => {
                                     >
                                       ✏️
                                     </button>
+                                    <button
+                                      onClick={() =>
+                                        handleOpenOptionsModal(item.id)
+                                      }
+                                      className="ml-1 text-purple-600 hover:text-purple-900"
+                                      title="Choose options (Good/Better/Best)"
+                                    >
+                                      ⚙️
+                                    </button>
                                   </td>
                                   <td className="px-2 py-1 text-center relative bg-gray-100">
                                     <button
@@ -3231,6 +3306,15 @@ const ProjectDetail = () => {
                                           className="block w-full text-left px-3 py-2 text-xs text-indigo-600 hover:bg-gray-50"
                                         >
                                           Edit
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            handleOpenOptionsModal(item.id);
+                                            setOpenActionMenu(null);
+                                          }}
+                                          className="block w-full text-left px-3 py-2 text-xs text-purple-600 hover:bg-gray-50"
+                                        >
+                                          Options
                                         </button>
                                         <button
                                           onClick={() => {
@@ -4962,6 +5046,19 @@ const ProjectDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Choose Options Modal */}
+      {showOptionsModal && optionsForLineItem && (
+        <ChooseOptionsModal
+          lineItem={optionsForLineItem}
+          products={allProducts}
+          manufacturers={manufacturers}
+          vendors={vendors}
+          productVendors={productVendors}
+          onClose={handleCloseOptionsModal}
+          onOptionsChanged={handleOptionsChanged}
+        />
       )}
 
       {/* Documents Modal */}

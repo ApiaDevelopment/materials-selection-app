@@ -1,4 +1,5 @@
 export { categoryService } from "./categoryService";
+export { lineItemOptionService } from "./lineItemOptionService";
 export { lineItemService } from "./lineItemService";
 export { manufacturerService } from "./manufacturerService";
 export { orderService } from "./orderService";

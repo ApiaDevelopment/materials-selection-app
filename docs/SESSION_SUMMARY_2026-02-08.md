@@ -15,12 +15,14 @@
 **Objective:** Add ability to export project materials selection as professional PowerPoint presentation.
 
 **Implementation:**
+
 - **Library:** pptxgenjs v3.12.0 (client-side PowerPoint generation)
 - **Bundle Impact:** +845 KB (19 dependencies, 0 vulnerabilities)
 - **Architecture:** 100% client-side, no backend changes required
 - **File:** `src/services/pptxService.ts` (504 lines)
 
 **Features Delivered:**
+
 - ✅ **Cover Slide:** Project info, customer details, MegaPros logo, selector contact info
 - ✅ **Section Dividers:** Category name with budget allocation (one per category)
 - ✅ **Product Detail Slides:** Full product specs, images, pricing, vendor info, clickable URLs
@@ -29,6 +31,7 @@
 - ✅ **Automatic Download:** Filename format: `{ProjectName}_Materials_Selection.pptx`
 
 **Technical Implementation:**
+
 1. **Phase 1:** Proof of concept - verified pptxgenjs works in our stack
 2. **Phase 2:** Data fetching layer - async fetch of all related data
 3. **Phase 3:** Slide generation - cover, sections, products
@@ -45,6 +48,7 @@
 ### 2. Project Detail Page UX Improvements (COMPLETE ✅)
 
 **Changes Made:**
+
 1. **Stacked Status/Type:** Project Status and Project Type now display vertically instead of horizontally
 2. **Removed SharePoint Link:** "Open Project Folder in SharePoint" link removed from header
 3. **Reorganized Buttons:** Two-row layout:
@@ -62,6 +66,7 @@
 **Created:** `docs/CLIENT_TESTING_GUIDE.md` (comprehensive 600+ line guide)
 
 **Contents:**
+
 - Introduction (prototype purpose, data preservation assurance)
 - **Section A:** Product Maintenance (vendors, manufacturers, products, associations)
 - **Section B:** Project Creation (all options and fields)
@@ -81,27 +86,33 @@
 ### 4. Process Documentation Created
 
 #### docs/DEPLOYMENT-CHECKLIST.md
+
 **Purpose:** Prevent Lambda deployment errors  
 **Background:** We discovered Lambda ZIP must include all 5 files, not just .js files  
 **Contents:**
+
 - Complete file list for Lambda deployment
 - Step-by-step deployment process
 - Verification steps
 - Troubleshooting guide
 
 #### docs/FIELD-ADDITION-CHECKLIST.md
+
 **Purpose:** Prevent formData initialization bugs  
 **Background:** When adding projectNumber, discovered mobilePhone/preferredContactMethod were in JSX but missing from formData  
 **Contents:**
+
 - Frontend checklist (types, formData, JSX, handlers)
 - Backend checklist (Lambda, DynamoDB schema)
 - Testing verification steps
 - Comprehensive guide for adding any new field
 
 #### docs/ARCHITECTURE_LESSONS_AND_POWERPOINT_PLAN.md
+
 **Purpose:** Capture Salesforce integration lessons and PowerPoint planning  
 **Size:** 800+ lines  
 **Contents:**
+
 - Salesforce integration architecture analysis
 - Why original implementation failed
 - Correct pattern for isolated features
@@ -117,16 +128,19 @@
 **Problem:** After adding projectNumber field, Lambda deployment failed with 502 Bad Gateway
 
 **Symptoms:**
+
 - "Cannot find module '@microsoft/microsoft-graph-client'"
 - Lambda worked fine before field addition
 
 **Root Cause:** PowerShell `Compress-Archive` only included .js files, not node_modules
 
 **Resolution:**
+
 - User manually created ZIP with all 5 required files
 - Created DEPLOYMENT-CHECKLIST.md to prevent recurrence
 
 **Files Required for Lambda ZIP:**
+
 1. index.js
 2. package.json
 3. sharepointService.js
@@ -140,12 +154,14 @@
 **Problem:** mobilePhone and preferredContactMethod existed in JSX but not in formData state
 
 **Symptoms:**
+
 - Form broke when projectNumber added
 - Fields displayed but values weren't captured
 
 **Root Cause:** Pre-existing bug from commit 31833a6 (incomplete field addition)
 
 **Resolution:**
+
 - Added all 3 fields (projectNumber, mobilePhone, preferredContactMethod) to 8 formData initialization points in ProjectList.tsx
 - Created FIELD-ADDITION-CHECKLIST.md to prevent recurrence
 
@@ -158,12 +174,14 @@
 **Problem:** Direct image URLs caused PowerPoint file corruption
 
 **Symptoms:**
+
 - PowerPoint repair prompt on open
 - Repair failed
 
 **Root Cause:** pptxgenjs cannot load external URLs directly in browser context
 
 **Resolution:**
+
 - Created `fetchImageAsBase64()` helper function
 - Convert all images to base64 data URIs before embedding
 - Works for both product images and logo
@@ -175,6 +193,7 @@
 **Problem:** Product URLs displayed but not clickable in PowerPoint
 
 **Resolution:**
+
 - Ensure https:// prefix on all URLs
 - Display full URL (not "Product Link" text)
 - Add underline styling
@@ -187,6 +206,7 @@
 **Problem:** Long product URLs (3 lines) bleeding into blue section
 
 **Resolution:**
+
 - Moved URL from y:6.3 to y:5.9
 - Increased height from 0.3 to 0.7
 - Now has 0.85 inches clearance before blue bar
@@ -196,6 +216,7 @@
 ## Files Added/Modified This Session
 
 ### New Files Created:
+
 - `src/services/pptxService.ts` - PowerPoint generation service (504 lines)
 - `docs/CLIENT_TESTING_GUIDE.md` - Client documentation (600+ lines)
 - `docs/DEPLOYMENT-CHECKLIST.md` - Lambda deployment guide
@@ -207,6 +228,7 @@
 - `docs/SubstituteImage.png` - Documentation copy
 
 ### Modified Files:
+
 - `package.json` - Added pptxgenjs v3.12.0
 - `package-lock.json` - Dependency tree updates
 - `src/components/ProjectDetail.tsx` - Export button + UX layout changes
@@ -222,6 +244,7 @@
 ### Design Decisions
 
 **Why Client-Side:**
+
 - ✅ No backend complexity or Lambda changes
 - ✅ Faster generation (no network round-trip)
 - ✅ No file storage needed
@@ -230,6 +253,7 @@
 - ✅ Lower operational cost (no Lambda execution)
 
 **Why NOT Server-Side:**
+
 - ❌ Would require Lambda dependency installation
 - ❌ Need S3 bucket for temporary file storage
 - ❌ Pre-signed URL generation complexity
@@ -260,11 +284,13 @@
 
 **Fonts:** Calibri (all slides)  
 **Colors:**
+
 - Blue: #1F4788 (gradient backgrounds)
 - Text: #363636 (dark gray primary), #666666 (medium gray secondary), #FFFFFF (white on blue)
 - Links: #0563C1 (blue underlined)
 
 **Sizes:**
+
 - 10pt: Footer text (selector info)
 - 18pt: Body text (product details, budget info)
 - 19pt: Cover slide project info
@@ -272,11 +298,13 @@
 - 39pt: Section divider category name
 
 **Layouts:**
+
 - **Cover:** Blue gradient left 25% (0, 0, 2.5, 7.5)
 - **Section:** Blue gradient top 75% (0, 0, 10, 5.625)
 - **Product:** Blue bar bottom 10% (0, 6.75, 10, 0.75)
 
 **Images:**
+
 - **Logo:** 3.0 × 0.6 inches at (4.0, 0.5)
 - **Products:** 4.5 × 5.0 inches at (5.0, 1.0) with "contain" sizing
 
@@ -285,17 +313,20 @@
 ## Deployment Information
 
 **Frontend:**
+
 - S3 Bucket: materials-selection-app-7525
 - CloudFront: E2CO2DGE8F4YUE
 - Domain: https://mpmaterials.apiaconsulting.com
 
 **Deployment Process:**
+
 1. `npm run build`
 2. `aws s3 sync dist/ s3://materials-selection-app-7525 --delete`
 3. `aws cloudfront create-invalidation --distribution-id E2CO2DGE8F4YUE --paths "/*"`
 4. Hard refresh browser (Ctrl+Shift+R)
 
 **Deployments This Session:** 3 successful deployments
+
 1. PowerPoint export feature
 2. UX layout changes
 3. Final verification deployment
@@ -312,6 +343,7 @@
 **Solution:** Use FIELD-ADDITION-CHECKLIST.md religiously
 
 **Critical Steps:**
+
 - Add to TypeScript types (all interfaces)
 - Add to formData state initialization (ALL instances)
 - Add to JSX form inputs
@@ -320,6 +352,7 @@
 - Test create AND edit flows
 
 **Watch Out For:** Projects can have 8+ formData initialization points due to:
+
 - Create modal
 - Edit modal
 - Salesforce modal
@@ -333,6 +366,7 @@
 **Solution:** Use DEPLOYMENT-CHECKLIST.md
 
 **Required Files (ALL must be in ZIP):**
+
 1. index.js
 2. package.json
 3. sharepointService.js
@@ -340,6 +374,7 @@
 5. package-lock.json
 
 **PowerShell ZIP Creation:**
+
 ```powershell
 # Navigate to lambda directory first
 cd .\lambda\deploy\
@@ -351,6 +386,7 @@ Compress-Archive -Path * -DestinationPath ..\lambda-deploy.zip -Force
 ```
 
 **Verification:**
+
 ```bash
 aws lambda get-function --function-name MaterialsSelection-API --query 'Configuration.LastModified'
 ```
@@ -362,18 +398,21 @@ aws lambda get-function --function-name MaterialsSelection-API --query 'Configur
 **Library Choice:** pptxgenjs is mature, well-documented, actively maintained
 
 **Image Handling:**
+
 - NEVER use direct URLs (causes corruption)
 - ALWAYS convert to base64 data URIs
 - Use fetch() + FileReader for conversion
 - Wrap in try/catch for graceful fallback
 
 **Async Considerations:**
+
 - Main function must be async
 - Await all image loading before slide generation
 - Generate slides sequentially (await in loops)
 - Use Promise.all() for parallel data fetching
 
 **Hyperlinks:**
+
 - Require full protocol (https://)
 - Display full URL for clickability visibility
 - Add underline styling
@@ -386,6 +425,7 @@ aws lambda get-function --function-name MaterialsSelection-API --query 'Configur
 **Principle:** New complex features should be isolated to prevent contamination
 
 **Guidelines:**
+
 - Separate state variables (don't share with existing features)
 - Separate handlers and submission logic
 - Separate modals/UI components when possible
@@ -393,6 +433,7 @@ aws lambda get-function --function-name MaterialsSelection-API --query 'Configur
 - Document the isolation strategy
 
 **PowerPoint Example:**
+
 - Completely isolated in pptxService.ts
 - Single button in ProjectDetail.tsx
 - Uses existing services (projectService, lineItemService, etc.)
@@ -406,6 +447,7 @@ aws lambda get-function --function-name MaterialsSelection-API --query 'Configur
 **Problem:** CloudFront + Browser caching can hide deployments
 
 **Solution:**
+
 1. Always create CloudFront invalidation after S3 sync
 2. Use Ctrl+F5 (hard refresh) to bypass browser cache
 3. Check Network tab > Disable cache during development
@@ -414,6 +456,7 @@ aws lambda get-function --function-name MaterialsSelection-API --query 'Configur
 6. Wait 1-2 minutes for propagation
 
 **Verification:**
+
 ```powershell
 # Check CloudFront invalidation
 aws cloudfront list-invalidations --distribution-id E2CO2DGE8F4YUE
@@ -427,6 +470,7 @@ aws s3 ls s3://materials-selection-app-7525/assets/ --recursive
 ## Current System State
 
 ### Features Working in Production:
+
 ✅ All CRUD operations (Projects, Products, Manufacturers, Vendors)  
 ✅ Product-Vendor associations  
 ✅ Salesforce integration (create projects from opportunities)  
@@ -436,12 +480,14 @@ aws s3 ls s3://materials-selection-app-7525/assets/ --recursive
 ✅ Budget tracking by category  
 ✅ View by category or vendor  
 ✅ Product filtering and search  
-✅ Project status workflow  
+✅ Project status workflow
 
 ### Known Issues:
+
 - None currently
 
 ### Technical Debt:
+
 - Bundle size warning (845 KB > 500 KB threshold)
 - Could benefit from code splitting for pptxgenjs
 - Some PowerShell scripts in root could be organized into /scripts folder
@@ -452,16 +498,19 @@ aws s3 ls s3://materials-selection-app-7525/assets/ --recursive
 ## Prerequisites Completed for Future Work
 
 ### Fields Added (Ready for Use):
+
 - **projectNumber** - Optional string for internal tracking
-- **mobilePhone** - Optional contact number  
+- **mobilePhone** - Optional contact number
 - **preferredContactMethod** - Optional communication preference
 - **opportunityId** - Optional Salesforce opportunity reference
 
 ### Images in Public Folder:
+
 - **MegaProsLogo.png** - Company branding
 - **SubstituteImage.png** - Product placeholder
 
 ### Documentation Created:
+
 - Client testing guide (ready to distribute)
 - Deployment procedures (Lambda)
 - Field addition procedures
@@ -476,10 +525,11 @@ aws s3 ls s3://materials-selection-app-7525/assets/ --recursive
 **Problem:** Main bundle is 845 KB (exceeds 500 KB recommendation)
 
 **Solution:**
+
 ```typescript
 // In ProjectDetail.tsx, lazy load pptxService
 const generatePPTX = async (projectId: string) => {
-  const { generateProjectPPTX } = await import('../services/pptxService');
+  const { generateProjectPPTX } = await import("../services/pptxService");
   await generateProjectPPTX(projectId);
 };
 ```
@@ -495,6 +545,7 @@ const generatePPTX = async (projectId: string) => {
 **Current State:** Outdated (shows PowerPoint as "In Planning")
 
 **Needed Updates:**
+
 - Mark PowerPoint export as COMPLETE
 - Update "Current Status Summary"
 - Add session date history
@@ -506,6 +557,7 @@ const generatePPTX = async (projectId: string) => {
 ### 3. Client Testing & Feedback Loop
 
 **Ready To Do:**
+
 - Convert CLIENT_TESTING_GUIDE.md to Word
 - Send to client for review
 - Schedule testing session
@@ -520,6 +572,7 @@ const generatePPTX = async (projectId: string) => {
 ### 4. PowerPoint Export Enhancements (If Requested)
 
 **Potential Improvements:**
+
 - Custom slide templates (user-selectable)
 - Additional slide: Budget summary across all categories
 - Additional slide: Product comparison matrix
@@ -537,6 +590,7 @@ const generatePPTX = async (projectId: string) => {
 **Current State:** Desktop-focused, mobile not tested
 
 **Considerations:**
+
 - ProjectDetail page has complex layout
 - Button reorganization may help mobile
 - Test on tablet/mobile devices
@@ -548,6 +602,7 @@ const generatePPTX = async (projectId: string) => {
 ### 6. Performance Optimization
 
 **Areas to Investigate:**
+
 - Database queries (are there N+1 query patterns?)
 - Frontend re-renders (React DevTools profiling)
 - Image loading (lazy loading, CDN)
@@ -561,9 +616,11 @@ const generatePPTX = async (projectId: string) => {
 ### Before Making Changes:
 
 1. **Check Git Status**
+
    ```powershell
    git status
    ```
+
    Review uncommitted changes from this session
 
 2. **Review Documentation**
@@ -597,6 +654,7 @@ const generatePPTX = async (projectId: string) => {
 ### When Deploying:
 
 1. **Frontend Deployment**
+
    ```powershell
    npm run build
    aws s3 sync dist/ s3://materials-selection-app-7525 --delete
@@ -659,7 +717,7 @@ Closes: [UX Improvement Request]
 **CloudFront Invalidations:** 3  
 **Issues Resolved:** 5  
 **Checklists Created:** 2  
-**Client Documentation:** 600+ lines  
+**Client Documentation:** 600+ lines
 
 **Session Success Rate:** 100% (all objectives met)  
 **User Satisfaction:** ✅ Verified working ("This looks good", "Ok that worked")
@@ -673,9 +731,10 @@ Closes: [UX Improvement Request]
 **S3 Bucket:** materials-selection-app-7525  
 **API Gateway:** xrld1hq3e2 (MaterialsSelectionAPI)  
 **Lambda:** MaterialsSelection-API (634752426026:us-east-1)  
-**AWS Region:** us-east-1  
+**AWS Region:** us-east-1
 
 **Key Documentation Files:**
+
 - `docs/SESSION_SUMMARY_2026-02-08.md` (this file)
 - `docs/CLIENT_TESTING_GUIDE.md`
 - `docs/DEPLOYMENT-CHECKLIST.md`

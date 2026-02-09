@@ -110,6 +110,20 @@ export interface LineItem {
   updatedAt: string;
 }
 
+export interface LineItemOption {
+  id: string;
+  lineItemId: string;
+  productId: string;
+  unitCost: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLineItemOptionRequest {
+  productId: string;
+  unitCost: number;
+}
+
 export interface CreateProjectRequest {
   name: string;
   description: string;

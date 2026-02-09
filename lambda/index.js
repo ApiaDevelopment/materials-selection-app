@@ -43,6 +43,7 @@ const ORDERS_TABLE = "MaterialsSelection-Orders";
 const ORDERITEMS_TABLE = "MaterialsSelection-OrderItems";
 const RECEIPTS_TABLE = "MaterialsSelection-Receipts";
 const PRODUCTVENDORS_TABLE = "MaterialsSelection-ProductVendors";
+const LINEITEMOPTIONS_TABLE = "MaterialsSelection-LineItemOptions";
 
 const headers = {
   "Content-Type": "application/json",
@@ -182,6 +183,20 @@ exports.handler = async (event) => {
     if (path.match(/^\/lineitems\/[^\/]+$/) && method === "DELETE") {
       const id = path.split("/")[2];
       return await deleteLineItem(id);
+    }
+
+    // LineItemOptions routes
+    if (path.match(/^\/lineitems\/[^\/]+\/options$/) && method === "GET") {
+      const lineItemId = path.split("/")[2];
+      return await getLineItemOptions(lineItemId);
+    }
+    if (path.match(/^\/lineitems\/[^\/]+\/options$/) && method === "POST") {
+      const lineItemId = path.split("/")[2];
+      return await createLineItemOption(lineItemId, JSON.parse(event.body));
+    }
+    if (path.match(/^\/lineitem-options\/[^\/]+$/) && method === "DELETE") {
+      const optionId = path.split("/")[2];
+      return await deleteLineItemOption(optionId);
     }
 
     // Vendors routes
@@ -783,6 +798,54 @@ async function updateLineItem(id, data) {
 async function deleteLineItem(id) {
   await ddb.send(
     new DeleteCommand({ TableName: LINEITEMS_TABLE, Key: { id } }),
+  );
+  return { statusCode: 204, headers, body: "" };
+}
+
+// LineItemOptions functions
+async function getLineItemOptions(lineItemId) {
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: LINEITEMOPTIONS_TABLE,
+      IndexName: "lineItemId-index",
+      KeyConditionExpression: "lineItemId = :lineItemId",
+      ExpressionAttributeValues: {
+        ":lineItemId": lineItemId,
+      },
+    }),
+  );
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify(result.Items || []),
+  };
+}
+
+async function createLineItemOption(lineItemId, data) {
+  const option = {
+    id: randomUUID(),
+    lineItemId: lineItemId,
+    productId: data.productId,
+    unitCost: data.unitCost,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  await ddb.send(
+    new PutCommand({ TableName: LINEITEMOPTIONS_TABLE, Item: option }),
+  );
+  return {
+    statusCode: 201,
+    headers,
+    body: JSON.stringify({ success: true, option }),
+  };
+}
+
+async function deleteLineItemOption(optionId) {
+  await ddb.send(
+    new DeleteCommand({
+      TableName: LINEITEMOPTIONS_TABLE,
+      Key: { id: optionId },
+    }),
   );
   return { statusCode: 204, headers, body: "" };
 }

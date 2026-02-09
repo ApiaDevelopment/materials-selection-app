@@ -1,0 +1,29 @@
+import type { CreateLineItemOptionRequest, LineItemOption } from "../types";
+import apiClient from "./api";
+
+export const lineItemOptionService = {
+  // Get all options for a line item
+  getByLineItemId: async (lineItemId: string): Promise<LineItemOption[]> => {
+    const response = await apiClient.get<LineItemOption[]>(
+      `/lineitems/${lineItemId}/options`,
+    );
+    return response.data;
+  },
+
+  // Create a new option for a line item
+  create: async (
+    lineItemId: string,
+    data: CreateLineItemOptionRequest,
+  ): Promise<LineItemOption> => {
+    const response = await apiClient.post<{
+      success: boolean;
+      option: LineItemOption;
+    }>(`/lineitems/${lineItemId}/options`, data);
+    return response.data.option;
+  },
+
+  // Delete an option
+  delete: async (optionId: string): Promise<void> => {
+    await apiClient.delete(`/lineitem-options/${optionId}`);
+  },
+};
