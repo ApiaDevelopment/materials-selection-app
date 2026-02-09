@@ -2050,6 +2050,7 @@ const ProjectDetail = () => {
                                   >
                                     <option value="pending">Pending</option>
                                     <option value="selected">Selected</option>
+                                    <option value="final">Final</option>
                                     <option value="ordered">Ordered</option>
                                     <option value="received">Received</option>
                                     <option value="installed">Installed</option>
@@ -2147,7 +2148,9 @@ const ProjectDetail = () => {
                                           ? "bg-blue-100 text-blue-700"
                                           : item.status === "received"
                                             ? "bg-purple-100 text-purple-700"
-                                            : "bg-gray-100 text-gray-700"
+                                            : item.status === "final"
+                                              ? "bg-teal-100 text-teal-700"
+                                              : "bg-gray-100 text-gray-700"
                                     }`}
                                   >
                                     {item.status || "pending"}
@@ -2516,6 +2519,7 @@ const ProjectDetail = () => {
                               >
                                 <option value="pending">Pending</option>
                                 <option value="selected">Selected</option>
+                                <option value="final">Final</option>
                                 <option value="ordered">Ordered</option>
                               </select>
                             </td>
@@ -2806,6 +2810,7 @@ const ProjectDetail = () => {
                                         <option value="selected">
                                           Selected
                                         </option>
+                                        <option value="final">Final</option>
                                         <option value="ordered">Ordered</option>
                                         <option value="received">
                                           Received
@@ -2884,7 +2889,9 @@ const ProjectDetail = () => {
                                             ? "bg-blue-100 text-blue-700"
                                             : item.status === "received"
                                               ? "bg-purple-100 text-purple-700"
-                                              : "bg-gray-100 text-gray-700"
+                                              : item.status === "final"
+                                                ? "bg-teal-100 text-teal-700"
+                                                : "bg-gray-100 text-gray-700"
                                       }`}
                                     >
                                       {item.status || "pending"}
@@ -3225,6 +3232,7 @@ const ProjectDetail = () => {
                                     >
                                       <option value="pending">Pending</option>
                                       <option value="selected">Selected</option>
+                                      <option value="final">Final</option>
                                       <option value="ordered">Ordered</option>
                                       <option value="received">Received</option>
                                       <option value="installed">
@@ -3317,7 +3325,9 @@ const ProjectDetail = () => {
                                             ? "bg-blue-100 text-blue-700"
                                             : item.status === "received"
                                               ? "bg-purple-100 text-purple-700"
-                                              : "bg-gray-100 text-gray-700"
+                                              : item.status === "final"
+                                                ? "bg-teal-100 text-teal-700"
+                                                : "bg-gray-100 text-gray-700"
                                       }`}
                                     >
                                       {item.status || "pending"}
@@ -3793,6 +3803,7 @@ const ProjectDetail = () => {
                 >
                   <option value="pending">Pending</option>
                   <option value="selected">Selected</option>
+                  <option value="final">Final</option>
                   <option value="ordered">Ordered</option>
                   <option value="received">Received</option>
                   <option value="installed">Installed</option>

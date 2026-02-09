@@ -102,6 +102,7 @@ export interface LineItem {
   status?:
     | "pending"
     | "selected"
+    | "final"
     | "ordered"
     | "received"
     | "part recvd"
@@ -221,6 +222,7 @@ export interface CreateLineItemRequest {
   status?:
     | "pending"
     | "selected"
+    | "final"
     | "ordered"
     | "received"
     | "part recvd"
@@ -246,6 +248,7 @@ export interface UpdateLineItemRequest {
   status?:
     | "pending"
     | "selected"
+    | "final"
     | "ordered"
     | "received"
     | "part recvd"
