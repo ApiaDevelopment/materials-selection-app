@@ -67,16 +67,37 @@ async function fetchProjectData(
       let vendor: Vendor | null = null;
 
       if (lineItem.productId) {
-        product = await productService.getProduct(lineItem.productId);
+        try {
+          product = await productService.getProduct(lineItem.productId);
 
-        if (product.manufacturerId) {
-          manufacturer = await manufacturerService.getManufacturer(
-            product.manufacturerId,
+          if (product.manufacturerId) {
+            try {
+              manufacturer = await manufacturerService.getManufacturer(
+                product.manufacturerId,
+              );
+            } catch (error) {
+              console.warn(
+                `Manufacturer ${product.manufacturerId} not found for product ${lineItem.productId}`,
+                error,
+              );
+            }
+          }
+
+          if (lineItem.vendorId) {
+            try {
+              vendor = await vendorService.getVendor(lineItem.vendorId);
+            } catch (error) {
+              console.warn(
+                `Vendor ${lineItem.vendorId} not found for line item ${lineItem.id}`,
+                error,
+              );
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `Product ${lineItem.productId} not found for line item ${lineItem.id}`,
+            error,
           );
-        }
-
-        if (lineItem.vendorId) {
-          vendor = await vendorService.getVendor(lineItem.vendorId);
         }
       }
 
@@ -84,35 +105,58 @@ async function fetchProjectData(
       const options = await lineItemOptionService.getByLineItemId(lineItem.id);
 
       // Fetch product details for each option (only non-selected options)
-      const optionsWithDetails = await Promise.all(
-        options
-          .filter((opt) => !opt.isSelected)
-          .map(async (option) => {
-            const optionProduct = await productService.getProduct(
-              option.productId,
-            );
+      const optionsWithDetails = (
+        await Promise.all(
+          options
+            .filter((opt) => !opt.isSelected)
+            .map(async (option) => {
+              try {
+                const optionProduct = await productService.getProduct(
+                  option.productId,
+                );
 
-            let optionManufacturer: Manufacturer | null = null;
-            if (optionProduct.manufacturerId) {
-              optionManufacturer = await manufacturerService.getManufacturer(
-                optionProduct.manufacturerId,
-              );
-            }
+                let optionManufacturer: Manufacturer | null = null;
+                if (optionProduct.manufacturerId) {
+                  try {
+                    optionManufacturer =
+                      await manufacturerService.getManufacturer(
+                        optionProduct.manufacturerId,
+                      );
+                  } catch (error) {
+                    console.warn(
+                      `Manufacturer ${optionProduct.manufacturerId} not found for option product ${option.productId}`,
+                      error,
+                    );
+                  }
+                }
 
-            // Get vendor from product-vendor relationship
-            let optionVendor: Vendor | null = null;
-            // For options, we don't have a vendorId on the line item,
-            // so we would need to look it up from ProductVendors if needed
-            // For now, leaving as null since option pricing comes from the option itself
+                // Get vendor from product-vendor relationship
+                let optionVendor: Vendor | null = null;
+                // For options, we don't have a vendorId on the line item,
+                // so we would need to look it up from ProductVendors if needed
+                // For now, leaving as null since option pricing comes from the option itself
 
-            return {
-              option,
-              product: optionProduct,
-              manufacturer: optionManufacturer,
-              vendor: optionVendor,
-            };
-          }),
-      );
+                return {
+                  option,
+                  product: optionProduct,
+                  manufacturer: optionManufacturer,
+                  vendor: optionVendor,
+                };
+              } catch (error) {
+                console.warn(
+                  `Product ${option.productId} not found for option ${option.id}`,
+                  error,
+                );
+                return null; // Skip this option if product missing
+              }
+            }),
+        )
+      ).filter((opt) => opt !== null) as Array<{
+        option: LineItemOption;
+        product: Product;
+        manufacturer: Manufacturer | null;
+        vendor: Vendor | null;
+      }>;
 
       return {
         lineItem,
@@ -336,6 +380,23 @@ async function generateProductSlide(
     fill: { color: "1F4788" },
   });
 
+  // Allowance in blue footer bar
+  if (lineItem.allowance) {
+    const allowanceText = `Allowance: $${lineItem.allowance.toLocaleString()}`;
+    slide.addText(allowanceText, {
+      x: 0.5,
+      y: 6.8,
+      w: 9,
+      h: 0.65,
+      fontSize: 20,
+      fontFace: "Calibri",
+      bold: true,
+      color: "FFFFFF",
+      align: "center",
+      valign: "middle",
+    });
+  }
+
   // Product URL just above blue bar (if available)
   if (product?.productUrl) {
     // Ensure URL has protocol prefix
@@ -358,26 +419,32 @@ async function generateProductSlide(
     });
   }
 
-  // Line item name and allowance upper left
-  const allowanceText = lineItem.allowance
-    ? ` - $${lineItem.allowance.toLocaleString()}`
-    : "";
-  const headerText = `${lineItem.name}${allowanceText}`;
-  slide.addText(headerText, {
+  // Line item name upper left with dynamic font sizing and wrapping
+  const nameLength = lineItem.name.length;
+  let nameFontSize = 35;
+  if (nameLength > 60) {
+    nameFontSize = 24;
+  } else if (nameLength > 40) {
+    nameFontSize = 28;
+  }
+
+  slide.addText(lineItem.name, {
     x: 0.3,
     y: 0.2,
-    w: 5.0,
-    h: 0.5,
-    fontSize: 35,
+    w: 5.5,
+    h: 1.0,
+    fontSize: nameFontSize,
     fontFace: "Calibri",
     bold: true,
     color: "1F4788",
+    wrap: true,
+    valign: "top",
   });
 
-  // Status upper right with tier if available
+  // Status upper right with tier if available (keep original case)
   const baseStatus = statusText || lineItem.status || "Selected";
   const tierText = product?.tier ? ` - ${product.tier.toUpperCase()}` : "";
-  const fullStatusText = `${baseStatus}${tierText}`.toUpperCase();
+  const fullStatusText = `${baseStatus}${tierText}`;
 
   // Determine status color
   let statusColor = "1F4788"; // Default blue
@@ -398,120 +465,87 @@ async function generateProductSlide(
   }
 
   slide.addText(fullStatusText, {
-    x: 5.5,
+    x: 6.0,
     y: 0.2,
-    w: 4.2,
-    h: 0.5,
-    fontSize: 35,
+    w: 3.7,
+    h: 1.0,
+    fontSize: 24,
     fontFace: "Calibri",
     bold: true,
     color: statusColor,
     align: "right",
+    valign: "top",
   });
 
-  // Product details
-  let yPos = 0.9;
+  // Product details - consolidated single text box with dynamic font sizing
+  // Adjust Y position based on line item name length to prevent overlap
   const detailsX = 0.3;
   const detailsW = 4.5;
 
-  // Product name
+  // Calculate detailsY based on estimated line item name height
+  // If name is short (<=40 chars), it's likely 1 line, start details at 0.9
+  // If name is longer, it will wrap to 2+ lines, move details down to 1.35
+  let detailsY = 0.9;
+  let detailsH = 4.8; // Height to accommodate wrapped text
+
+  if (nameLength > 40) {
+    detailsY = 1.35; // Move down to avoid overlap with wrapped name
+    detailsH = 4.35; // Reduce height to avoid overlapping URL at bottom
+  }
+
+  // Build details text array
+  const detailsLines: string[] = [];
+
   if (product?.name) {
-    slide.addText(`Product: ${product.name}`, {
-      x: detailsX,
-      y: yPos,
-      w: detailsW,
-      h: 0.3,
-      fontSize: 18,
-      fontFace: "Calibri",
-      bold: true,
-      color: "363636",
-    });
-    yPos += 0.35;
+    detailsLines.push(`Product: ${product.name}`);
   }
 
-  // Product description (materials)
-  if (product?.description || lineItem.material) {
-    const description = product?.description || lineItem.material;
-    slide.addText(`Description: ${description}`, {
-      x: detailsX,
-      y: yPos,
-      w: detailsW,
-      h: 0.3,
-      fontSize: 18,
-      fontFace: "Calibri",
-      color: "363636",
-    });
-    yPos += 0.35;
+  const description = product?.description || lineItem.material;
+  if (description) {
+    detailsLines.push(`Description: ${description}`);
   }
 
-  // Model number (without tier)
   if (product?.modelNumber) {
-    slide.addText(`Model: ${product.modelNumber}`, {
-      x: detailsX,
-      y: yPos,
-      w: detailsW,
-      h: 0.3,
-      fontSize: 18,
-      fontFace: "Calibri",
-      color: "363636",
-    });
-    yPos += 0.35;
+    detailsLines.push(`Model: ${product.modelNumber}`);
   }
 
-  // Manufacturer
   if (manufacturer) {
-    slide.addText(`Manufacturer: ${manufacturer.name}`, {
-      x: detailsX,
-      y: yPos,
-      w: detailsW,
-      h: 0.3,
-      fontSize: 18,
-      fontFace: "Calibri",
-      color: "363636",
-    });
-    yPos += 0.35;
+    detailsLines.push(`Manufacturer: ${manufacturer.name}`);
   }
 
-  // Vendor
   if (vendor) {
-    slide.addText(`Vendor: ${vendor.name}`, {
-      x: detailsX,
-      y: yPos,
-      w: detailsW,
-      h: 0.3,
-      fontSize: 18,
-      fontFace: "Calibri",
-      color: "363636",
-    });
-    yPos += 0.35;
+    detailsLines.push(`Vendor: ${vendor.name}`);
   }
 
-  // Quantity
-  slide.addText(`Quantity: ${lineItem.quantity} ${lineItem.unit}`, {
-    x: detailsX,
-    y: yPos,
-    w: detailsW,
-    h: 0.3,
-    fontSize: 18,
-    fontFace: "Calibri",
-    bold: true,
-    color: "363636",
-  });
-  yPos += 0.35;
-
-  // Pricing
-  slide.addText(
+  detailsLines.push(`Quantity: ${lineItem.quantity} ${lineItem.unit}`);
+  detailsLines.push(
     `Unit: $${lineItem.unitCost.toFixed(2)} | Total: $${lineItem.totalCost.toFixed(2)}`,
-    {
-      x: detailsX,
-      y: yPos,
-      w: detailsW,
-      h: 0.3,
-      fontSize: 18,
-      fontFace: "Calibri",
-      color: "363636",
-    },
   );
+
+  // Calculate total text length for dynamic font sizing
+  const totalText = detailsLines.join("\n");
+  const totalChars = totalText.length;
+
+  // Dynamic font size: fewer chars = larger font
+  let detailsFontSize = 18;
+  if (totalChars > 400) {
+    detailsFontSize = 14;
+  } else if (totalChars > 250) {
+    detailsFontSize = 16;
+  }
+
+  // Add single consolidated text box
+  slide.addText(totalText, {
+    x: detailsX,
+    y: detailsY,
+    w: detailsW,
+    h: detailsH,
+    fontSize: detailsFontSize,
+    fontFace: "Calibri",
+    color: "363636",
+    wrap: true,
+    valign: "top",
+  });
 
   // Product image or placeholder (below details)
   try {
